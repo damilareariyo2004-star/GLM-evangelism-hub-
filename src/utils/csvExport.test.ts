@@ -14,6 +14,7 @@ test('generateRecordsCsv outputs valid CSV with DD/MM/YYYY date formatting', () 
   const records: EvangelismRecord[] = [
     {
       id: 'rec-1',
+      workerUid: 'worker-123',
       fullName: 'Brother David',
       phone: '+2348081122233',
       programs: ['Wednesday Program', 'Sunday Service'],

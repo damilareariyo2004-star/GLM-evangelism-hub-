@@ -2,9 +2,20 @@
   "entities": {
     "EvangelismRecord": {
       "title": "EvangelismRecord",
-      "description": "A record of an individual met during church evangelism outreach by Gospel Labor Ministry.",
+      "description": "A record of an individual met during church evangelism outreach by Gospel Labor Ministry, owned by a specific worker.",
       "type": "object",
       "properties": {
+        "workerUid": {
+          "type": "string",
+          "description": "Firebase Authentication UID of the evangelism worker who created and owns this record",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "workerEmail": {
+          "type": "string",
+          "description": "Email address of the evangelism worker who owns this record",
+          "maxLength": 150
+        },
         "fullName": {
           "type": "string",
           "description": "Full name of the contact person",
@@ -42,7 +53,7 @@
         },
         "date": {
           "type": "string",
-          "description": "Date of the encounter in YYYY-MM-DD format",
+          "description": "Date of the encounter in DD/MM/YYYY or YYYY-MM-DD format",
           "maxLength": 25
         },
         "followedUp": {
@@ -66,6 +77,7 @@
         }
       },
       "required": [
+        "workerUid",
         "fullName",
         "phone",
         "programs",
@@ -80,7 +92,7 @@
   "firestore": {
     "/records/{recordId}": {
       "schema": "EvangelismRecord",
-      "description": "Collection of outreach contacts recorded by GLM members"
+      "description": "Collection of outreach contacts recorded and owned by evangelism workers"
     }
   }
 }

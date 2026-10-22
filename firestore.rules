@@ -6,6 +6,15 @@ service cloud.firestore {
       allow read, write: if false;
     }
 
+    // Ping check endpoint for client online test
+    match /test/connection {
+      allow read: if true;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
     function isValidId(id) {
       return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
     }
@@ -19,7 +28,10 @@ service cloud.firestore {
     }
 
     function isValidRecord(data) {
-      return data.fullName is string && data.fullName.size() >= 1 && data.fullName.size() <= 150
+      return data.workerUid is string && data.workerUid.size() >= 1 && data.workerUid.size() <= 128
+        && data.workerUid == request.auth.uid
+        && (!('workerEmail' in data) || (data.workerEmail is string && data.workerEmail.size() <= 150))
+        && data.fullName is string && data.fullName.size() >= 1 && data.fullName.size() <= 150
         && data.phone is string && data.phone.size() >= 3 && data.phone.size() <= 50
         && data.programs is list && data.programs.size() <= 10
         && data.isNewConvert is bool
@@ -32,14 +44,20 @@ service cloud.firestore {
     }
 
     match /records/{recordId} {
-      // Outreach workers and church members read & query records
-      allow get, list: if true;
-      // Allow street evangelists to save new souls met during outreach
-      allow create: if isValidId(recordId) && isValidRecord(incoming());
-      // Allow updating notes, follow-up status, or contact details
-      allow update: if isValidId(recordId) && isValidRecord(incoming());
-      // Allow workers to delete duplicate or invalid test entries
-      allow delete: if isValidId(recordId);
+      // Workers can only read and list records that belong to them
+      allow get: if isSignedIn() && existing().workerUid == request.auth.uid;
+      allow list: if isSignedIn() && resource.data.workerUid == request.auth.uid;
+
+      // Workers can only create records under their own authenticated UID
+      allow create: if isSignedIn() && isValidId(recordId) && isValidRecord(incoming()) && incoming().workerUid == request.auth.uid;
+
+      // Workers can only update their own records and cannot transfer ownership to another UID
+      allow update: if isSignedIn() && isValidId(recordId) && isValidRecord(incoming())
+        && existing().workerUid == request.auth.uid
+        && incoming().workerUid == existing().workerUid;
+
+      // Workers can only delete their own records
+      allow delete: if isSignedIn() && isValidId(recordId) && existing().workerUid == request.auth.uid;
     }
   }
 }

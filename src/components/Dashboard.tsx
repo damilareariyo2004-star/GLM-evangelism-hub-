@@ -12,6 +12,7 @@ import {
   ChevronDown,
   ChevronUp
 } from 'lucide-react';
+import { User } from 'firebase/auth';
 import { DashboardStats, EvangelismRecord, ChurchProgram } from '../types';
 import { downloadRecordsCsv } from '../utils/csvExport';
 import { formatDateDisplay } from '../utils/dateUtils';
@@ -19,21 +20,21 @@ import { formatDateDisplay } from '../utils/dateUtils';
 interface DashboardProps {
   stats: DashboardStats;
   recentRecords: EvangelismRecord[];
+  currentUser: User | null;
+  onOpenAuth: () => void;
   onNavigateToAdd: () => void;
   onNavigateToRecords: () => void;
   onSelectRecord: (record: EvangelismRecord) => void;
-  isWorkerUnlocked: boolean;
-  onUnlockWorker: () => void;
 }
 
 export const Dashboard: React.FC<DashboardProps> = ({
   stats,
   recentRecords,
+  currentUser,
+  onOpenAuth,
   onNavigateToAdd,
   onNavigateToRecords,
-  onSelectRecord,
-  isWorkerUnlocked,
-  onUnlockWorker
+  onSelectRecord
 }) => {
   // State to track expanded note IDs
   const [expandedNotes, setExpandedNotes] = useState<Record<string, boolean>>({});
@@ -412,8 +413,8 @@ export const Dashboard: React.FC<DashboardProps> = ({
 
             <button
               onClick={() => {
-                if (!isWorkerUnlocked) {
-                  onUnlockWorker();
+                if (!currentUser) {
+                  onOpenAuth();
                 } else {
                   downloadRecordsCsv(recentRecords);
                 }

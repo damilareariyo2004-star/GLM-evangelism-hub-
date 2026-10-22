@@ -6,40 +6,26 @@ import {
   deleteDoc,
   onSnapshot,
   query,
-  orderBy,
+  where,
   serverTimestamp
 } from 'firebase/firestore';
 import { db, handleFirestoreError, OperationType } from '../firebase';
-import { EvangelismRecord, DashboardStats, ChurchProgram, CHURCH_PROGRAMS } from '../types';
+import { EvangelismRecord, DashboardStats, ChurchProgram } from '../types';
 
 const COLLECTION_NAME = 'records';
-const LOCAL_STORAGE_KEY = 'glm_evangelism_records_cache_v2';
 
-// Clean out any old mock seed data from previous versions
-export function purgeLegacyDemoCache(): void {
-  try {
-    localStorage.removeItem('glm_evangelism_records_cache');
-    const existing = localStorage.getItem(LOCAL_STORAGE_KEY);
-    if (existing) {
-      const parsed = JSON.parse(existing);
-      if (Array.isArray(parsed)) {
-        // Filter out any legacy seed records
-        const cleaned = parsed.filter((r) => !String(r.id || '').startsWith('seed-glm-'));
-        localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(cleaned));
-      }
-    }
-  } catch (e) {
-    console.warn('Could not purge legacy cache', e);
-  }
+function getStorageKey(workerUid: string): string {
+  return `glm_evangelism_records_cache_v3_${workerUid}`;
 }
 
-function getCachedRecords(): EvangelismRecord[] {
+function getCachedRecords(workerUid: string): EvangelismRecord[] {
+  if (!workerUid) return [];
   try {
-    const raw = localStorage.getItem(LOCAL_STORAGE_KEY);
+    const raw = localStorage.getItem(getStorageKey(workerUid));
     if (raw) {
       const parsed = JSON.parse(raw);
       if (Array.isArray(parsed)) {
-        return parsed.filter((r) => !String(r.id || '').startsWith('seed-glm-'));
+        return parsed.filter((r) => r.workerUid === workerUid);
       }
     }
   } catch (e) {
@@ -48,100 +34,118 @@ function getCachedRecords(): EvangelismRecord[] {
   return [];
 }
 
-function setCachedRecords(records: EvangelismRecord[]): void {
+function setCachedRecords(workerUid: string, records: EvangelismRecord[]): void {
+  if (!workerUid) return;
   try {
-    localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(records));
+    localStorage.setItem(getStorageKey(workerUid), JSON.stringify(records));
   } catch (e) {
     console.warn('Could not save records to cache', e);
   }
 }
 
 /**
- * Subscribes to records collection in Firestore, starting completely empty by default.
+ * Subscribes to records collection in Firestore, strictly scoped to the signed-in worker UID.
+ * Enforces database-level isolation.
  */
-export function subscribeToRecords(
+export function subscribeToWorkerRecords(
+  workerUid: string | null,
   onSuccess: (records: EvangelismRecord[]) => void,
   onError?: (err: unknown) => void
 ): () => void {
-  purgeLegacyDemoCache();
-  const cached = getCachedRecords();
+  if (!workerUid) {
+    onSuccess([]);
+    return () => {};
+  }
+
+  // Emit worker's cached records immediately
+  const cached = getCachedRecords(workerUid);
   onSuccess(cached);
 
   try {
     const recordsCol = collection(db, COLLECTION_NAME);
-    const q = query(recordsCol, orderBy('createdAt', 'desc'));
+    // Strict query matching the security rule: where('workerUid', '==', workerUid)
+    const q = query(recordsCol, where('workerUid', '==', workerUid));
 
     const unsubscribe = onSnapshot(
       q,
       (snapshot) => {
-        if (!snapshot.empty) {
-          const list: EvangelismRecord[] = [];
-          snapshot.docs.forEach((docSnap) => {
-            // Exclude any legacy sample records
-            if (docSnap.id.startsWith('seed-glm-')) return;
-            const data = docSnap.data();
-            list.push({
-              id: docSnap.id,
-              fullName: data.fullName || '',
-              phone: data.phone || '',
-              programs: Array.isArray(data.programs) ? data.programs : [],
-              isNewConvert: Boolean(data.isNewConvert),
-              respondedWell: Boolean(data.respondedWell),
-              notes: data.notes || '',
-              evangelistName: data.evangelistName || '',
-              date: data.date || '',
-              followedUp: Boolean(data.followedUp),
-              followUpNotes: data.followUpNotes || '',
-              createdAt: data.createdAt?.toDate ? data.createdAt.toDate().toISOString() : data.createdAt,
-              updatedAt: data.updatedAt?.toDate ? data.updatedAt.toDate().toISOString() : data.updatedAt,
-            });
+        const list: EvangelismRecord[] = [];
+        snapshot.docs.forEach((docSnap) => {
+          const data = docSnap.data();
+          list.push({
+            id: docSnap.id,
+            workerUid: data.workerUid || workerUid,
+            workerEmail: data.workerEmail || '',
+            fullName: data.fullName || '',
+            phone: data.phone || '',
+            programs: Array.isArray(data.programs) ? data.programs : [],
+            isNewConvert: Boolean(data.isNewConvert),
+            respondedWell: Boolean(data.respondedWell),
+            notes: data.notes || '',
+            evangelistName: data.evangelistName || '',
+            date: data.date || '',
+            followedUp: Boolean(data.followedUp),
+            followUpNotes: data.followUpNotes || '',
+            createdAt: data.createdAt?.toDate ? data.createdAt.toDate().toISOString() : data.createdAt,
+            updatedAt: data.updatedAt?.toDate ? data.updatedAt.toDate().toISOString() : data.updatedAt,
           });
+        });
 
-          setCachedRecords(list);
-          onSuccess(list);
-        } else {
-          // Empty database: start with zero records
-          setCachedRecords([]);
-          onSuccess([]);
-        }
+        // Sort newest first by date or creation time
+        list.sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+
+        setCachedRecords(workerUid, list);
+        onSuccess(list);
       },
       (error) => {
-        console.warn('Firestore snapshot error (using offline cache):', error);
+        console.warn('Firestore snapshot error for worker records:', error);
         if (onError) onError(error);
         try {
           handleFirestoreError(error, OperationType.LIST, COLLECTION_NAME);
         } catch {
-          // Error logged to firestore error handler
+          // Handled
         }
       }
     );
 
     return unsubscribe;
   } catch (err) {
-    console.warn('Failed to attach Firestore listener, using offline mode', err);
+    console.warn('Failed to attach worker Firestore listener:', err);
     return () => {};
   }
 }
 
 /**
- * Creates a new evangelism record
+ * Creates a new evangelism record owned by the authenticated worker
  */
-export async function createEvangelismRecord(record: Omit<EvangelismRecord, 'id'>): Promise<string> {
+export async function createEvangelismRecord(
+  workerUid: string,
+  workerEmail: string | undefined,
+  record: Omit<EvangelismRecord, 'id' | 'workerUid' | 'workerEmail'>
+): Promise<string> {
+  if (!workerUid) {
+    throw new Error('You must be signed in to save evangelism records.');
+  }
+
   const recordId = 'rec_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7);
   const newRecord: EvangelismRecord = {
     ...record,
     id: recordId,
+    workerUid,
+    workerEmail: workerEmail || '',
     createdAt: new Date().toISOString()
   };
 
-  // Optimistically update local cache
-  const cached = getCachedRecords();
+  // Optimistically update worker local cache
+  const cached = getCachedRecords(workerUid);
   const updated = [newRecord, ...cached.filter((r) => r.id !== recordId)];
-  setCachedRecords(updated);
+  setCachedRecords(workerUid, updated);
 
   try {
     const docRef = doc(db, COLLECTION_NAME, recordId);
     await setDoc(docRef, {
+      workerUid,
+      workerEmail: workerEmail || '',
       fullName: record.fullName.trim(),
       phone: record.phone.trim(),
       programs: record.programs,
@@ -168,15 +172,22 @@ export async function createEvangelismRecord(record: Omit<EvangelismRecord, 'id'
 }
 
 /**
- * Updates an existing record
+ * Updates an existing record owned by the authenticated worker
  */
 export async function updateEvangelismRecord(
+  workerUid: string,
   id: string,
-  updates: Partial<Omit<EvangelismRecord, 'id'>>
+  updates: Partial<Omit<EvangelismRecord, 'id' | 'workerUid'>>
 ): Promise<void> {
-  const cached = getCachedRecords();
-  const updated = cached.map((item) => (item.id === id ? { ...item, ...updates, updatedAt: new Date().toISOString() } : item));
-  setCachedRecords(updated);
+  if (!workerUid) {
+    throw new Error('You must be signed in to update records.');
+  }
+
+  const cached = getCachedRecords(workerUid);
+  const updated = cached.map((item) =>
+    item.id === id ? { ...item, ...updates, updatedAt: new Date().toISOString() } : item
+  );
+  setCachedRecords(workerUid, updated);
 
   try {
     const docRef = doc(db, COLLECTION_NAME, id);
@@ -196,12 +207,16 @@ export async function updateEvangelismRecord(
 }
 
 /**
- * Deletes a record
+ * Deletes a record owned by the authenticated worker
  */
-export async function deleteEvangelismRecord(id: string): Promise<void> {
-  const cached = getCachedRecords();
+export async function deleteEvangelismRecord(workerUid: string, id: string): Promise<void> {
+  if (!workerUid) {
+    throw new Error('You must be signed in to delete records.');
+  }
+
+  const cached = getCachedRecords(workerUid);
   const updated = cached.filter((item) => item.id !== id);
-  setCachedRecords(updated);
+  setCachedRecords(workerUid, updated);
 
   try {
     const docRef = doc(db, COLLECTION_NAME, id);

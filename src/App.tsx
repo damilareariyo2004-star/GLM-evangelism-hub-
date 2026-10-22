@@ -4,38 +4,30 @@
  */
 
 import React, { useState, useEffect } from 'react';
+import { User, onAuthStateChanged } from 'firebase/auth';
 import { Header } from './components/Header';
 import { Navigation, TabType } from './components/Navigation';
 import { Dashboard } from './components/Dashboard';
 import { AddPersonForm } from './components/AddPersonForm';
 import { RecordsList } from './components/RecordsList';
 import { RecordDetailModal } from './components/RecordDetailModal';
-import { AdminLockModal } from './components/AdminLockModal';
+import { WorkerAuthModal } from './components/WorkerAuthModal';
 import {
-  subscribeToRecords,
+  subscribeToWorkerRecords,
   createEvangelismRecord,
   updateEvangelismRecord,
   deleteEvangelismRecord,
   calculateDashboardStats
 } from './services/recordService';
-import { testConnection } from './firebase';
+import { auth, testConnection } from './firebase';
 import { EvangelismRecord, DashboardStats } from './types';
 
 export default function App() {
   const [currentTab, setCurrentTab] = useState<TabType>('dashboard');
+  const [currentUser, setCurrentUser] = useState<User | null>(() => auth.currentUser);
   const [records, setRecords] = useState<EvangelismRecord[]>([]);
   const [selectedRecord, setSelectedRecord] = useState<EvangelismRecord | null>(null);
-  const [isWorkerModalOpen, setIsWorkerModalOpen] = useState(false);
-  const [isWorkerUnlocked, setIsWorkerUnlocked] = useState<boolean>(() => {
-    try {
-      return (
-        localStorage.getItem('glm_worker_unlocked') === 'true' ||
-        sessionStorage.getItem('glm_worker_unlocked') === 'true'
-      );
-    } catch {
-      return false;
-    }
-  });
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
 
   // Test Firebase connection on mount
   useEffect(() => {
@@ -44,57 +36,83 @@ export default function App() {
     });
   }, []);
 
-  // Subscribe to real-time records from Firestore (starting empty)
+  // Listen to Firebase Authentication state changes
   useEffect(() => {
-    const unsubscribe = subscribeToRecords((updatedRecords) => {
-      setRecords(updatedRecords);
+    const unsubscribeAuth = onAuthStateChanged(auth, (user) => {
+      setCurrentUser(user);
     });
-
     return () => {
-      unsubscribe();
+      unsubscribeAuth();
     };
   }, []);
 
-  // Compute live stats
+  // Real-time Firestore subscription strictly scoped to the signed-in worker UID
+  useEffect(() => {
+    if (!currentUser) {
+      setRecords([]);
+      return;
+    }
+
+    const unsubscribeRecords = subscribeToWorkerRecords(
+      currentUser.uid,
+      (updatedRecords) => {
+        setRecords(updatedRecords);
+      },
+      (err) => {
+        console.warn('Worker records listener notice:', err);
+      }
+    );
+
+    return () => {
+      unsubscribeRecords();
+    };
+  }, [currentUser]);
+
+  // Compute live stats for current worker
   const stats: DashboardStats = calculateDashboardStats(records);
 
-  const handleToggleWorkerAuth = () => {
-    if (isWorkerUnlocked) {
-      // Lock worker mode
-      try {
-        localStorage.removeItem('glm_worker_unlocked');
-        sessionStorage.removeItem('glm_worker_unlocked');
-      } catch {
-        // ignore
-      }
-      setIsWorkerUnlocked(false);
-    } else {
-      // Open login modal
-      setIsWorkerModalOpen(true);
+  const handleCreateRecord = async (
+    recordData: Omit<EvangelismRecord, 'id' | 'workerUid' | 'workerEmail'>
+  ): Promise<string> => {
+    if (!currentUser) {
+      setIsAuthModalOpen(true);
+      throw new Error('Please sign in to your church worker account to save outreach records.');
     }
-  };
-
-  const handleCreateRecord = async (recordData: Omit<EvangelismRecord, 'id'>): Promise<string> => {
-    const newId = await createEvangelismRecord(recordData);
+    const newId = await createEvangelismRecord(
+      currentUser.uid,
+      currentUser.email || undefined,
+      recordData
+    );
     return newId;
   };
 
-  const handleUpdateRecord = async (id: string, updates: Partial<Omit<EvangelismRecord, 'id'>>) => {
-    await updateEvangelismRecord(id, updates);
+  const handleUpdateRecord = async (
+    id: string,
+    updates: Partial<Omit<EvangelismRecord, 'id' | 'workerUid'>>
+  ) => {
+    if (!currentUser) {
+      setIsAuthModalOpen(true);
+      throw new Error('Please sign in with your worker account.');
+    }
+    await updateEvangelismRecord(currentUser.uid, id, updates);
     setSelectedRecord((prev) => (prev && prev.id === id ? { ...prev, ...updates } : prev));
   };
 
   const handleDeleteRecord = async (id: string) => {
-    await deleteEvangelismRecord(id);
+    if (!currentUser) {
+      setIsAuthModalOpen(true);
+      throw new Error('Please sign in with your worker account.');
+    }
+    await deleteEvangelismRecord(currentUser.uid, id);
     setSelectedRecord(null);
   };
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col selection:bg-orange-100 selection:text-orange-900">
-      {/* Header */}
+      {/* Header with Church Logo & Worker Sign In / Profile */}
       <Header
-        isWorkerUnlocked={isWorkerUnlocked}
-        onToggleWorkerAuth={handleToggleWorkerAuth}
+        currentUser={currentUser}
+        onOpenAuth={() => setIsAuthModalOpen(true)}
         recordsCount={records.length}
       />
 
@@ -111,23 +129,25 @@ export default function App() {
           <Dashboard
             stats={stats}
             recentRecords={records}
+            currentUser={currentUser}
+            onOpenAuth={() => setIsAuthModalOpen(true)}
             onNavigateToAdd={() => setCurrentTab('add')}
             onNavigateToRecords={() => setCurrentTab('records')}
             onSelectRecord={(rec) => {
-              if (isWorkerUnlocked) {
+              if (currentUser) {
                 setSelectedRecord(rec);
               } else {
-                setIsWorkerModalOpen(true);
+                setIsAuthModalOpen(true);
               }
             }}
-            isWorkerUnlocked={isWorkerUnlocked}
-            onUnlockWorker={() => setIsWorkerModalOpen(true)}
           />
         )}
 
         {currentTab === 'add' && (
           <AddPersonForm
             existingRecords={records}
+            currentUser={currentUser}
+            onOpenAuth={() => setIsAuthModalOpen(true)}
             onSubmitRecord={handleCreateRecord}
             onNavigateToRecords={() => setCurrentTab('records')}
             onNavigateToDashboard={() => setCurrentTab('dashboard')}
@@ -137,8 +157,8 @@ export default function App() {
         {currentTab === 'records' && (
           <RecordsList
             records={records}
-            isWorkerUnlocked={isWorkerUnlocked}
-            onUnlockWorker={() => setIsWorkerModalOpen(true)}
+            currentUser={currentUser}
+            onOpenAuth={() => setIsAuthModalOpen(true)}
             onSelectRecord={(rec) => setSelectedRecord(rec)}
             onNavigateToAdd={() => setCurrentTab('add')}
             onUpdateRecord={handleUpdateRecord}
@@ -157,11 +177,15 @@ export default function App() {
         />
       )}
 
-      {/* Admin Worker Passcode Modal */}
-      <AdminLockModal
-        isOpen={isWorkerModalOpen}
-        onClose={() => setIsWorkerModalOpen(false)}
-        onSuccessUnlock={() => setIsWorkerUnlocked(true)}
+      {/* Worker Firebase Auth Modal (Google & Email/Password) */}
+      <WorkerAuthModal
+        isOpen={isAuthModalOpen}
+        currentUser={currentUser}
+        onClose={() => setIsAuthModalOpen(false)}
+        onSuccess={(user) => {
+          setCurrentUser(user);
+          setIsAuthModalOpen(false);
+        }}
       />
     </div>
   );

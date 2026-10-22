@@ -10,21 +10,29 @@ import {
   Church,
   RotateCcw,
   AlertTriangle,
-  AlertCircle
+  AlertCircle,
+  Lock,
+  Unlock,
+  ShieldCheck
 } from 'lucide-react';
+import { User as FirebaseUser } from 'firebase/auth';
 import { ChurchProgram, CHURCH_PROGRAMS, EvangelismRecord } from '../types';
 import { validatePhoneNumber, normalizePhoneForComparison } from '../utils/phoneUtils';
 import { getTodayFormatted, formatDateDisplay } from '../utils/dateUtils';
 
 interface AddPersonFormProps {
   existingRecords: EvangelismRecord[];
-  onSubmitRecord: (record: Omit<EvangelismRecord, 'id'>) => Promise<string>;
+  currentUser: FirebaseUser | null;
+  onOpenAuth: () => void;
+  onSubmitRecord: (record: Omit<EvangelismRecord, 'id' | 'workerUid' | 'workerEmail'>) => Promise<string>;
   onNavigateToRecords: () => void;
   onNavigateToDashboard: () => void;
 }
 
 export const AddPersonForm: React.FC<AddPersonFormProps> = ({
   existingRecords,
+  currentUser,
+  onOpenAuth,
   onSubmitRecord,
   onNavigateToRecords,
   onNavigateToDashboard
@@ -43,11 +51,15 @@ export const AddPersonForm: React.FC<AddPersonFormProps> = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [phoneValidationError, setPhoneValidationError] = useState<string | null>(null);
-  const [lastSubmittedRecord, setLastSubmittedRecord] = useState<Omit<EvangelismRecord, 'id'> | null>(null);
+  const [lastSubmittedRecord, setLastSubmittedRecord] = useState<Omit<EvangelismRecord, 'id' | 'workerUid' | 'workerEmail'> | null>(null);
   const [isSuccess, setIsSuccess] = useState(false);
 
-  // Auto-load last entered evangelist name from localStorage
+  // Auto-load last entered evangelist name or from currentUser
   useEffect(() => {
+    if (currentUser?.displayName) {
+      setEvangelistName(currentUser.displayName);
+      return;
+    }
     try {
       const savedEvangelist = localStorage.getItem('glm_last_evangelist');
       if (savedEvangelist) {
@@ -56,7 +68,7 @@ export const AddPersonForm: React.FC<AddPersonFormProps> = ({
     } catch {
       // ignore
     }
-  }, []);
+  }, [currentUser]);
 
   // Duplicate Phone Number Check
   const duplicateRecordMatch = useMemo(() => {
@@ -113,6 +125,13 @@ export const AddPersonForm: React.FC<AddPersonFormProps> = ({
       return;
     }
 
+    // Require authenticated worker to save to their account
+    if (!currentUser) {
+      setErrorMessage('Please sign in to your church worker account so this soul record is safely saved.');
+      onOpenAuth();
+      return;
+    }
+
     setIsSubmitting(true);
 
     try {
@@ -123,7 +142,7 @@ export const AddPersonForm: React.FC<AddPersonFormProps> = ({
         // ignore
       }
 
-      const recordData: Omit<EvangelismRecord, 'id'> = {
+      const recordData: Omit<EvangelismRecord, 'id' | 'workerUid' | 'workerEmail'> = {
         fullName: fullName.trim(),
         phone: phone.trim(),
         programs: selectedPrograms,
@@ -243,17 +262,35 @@ export const AddPersonForm: React.FC<AddPersonFormProps> = ({
   return (
     <div className="max-w-2xl mx-auto pb-24 sm:pb-12">
       {/* Top Title */}
-      <div className="mb-5">
-        <div className="flex items-center gap-2 text-xs font-bold text-[#E02020] uppercase tracking-wider">
-          <Church className="w-4 h-4" />
-          <span>Evangelism Field Record</span>
+      <div className="mb-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div>
+          <div className="flex items-center gap-2 text-xs font-bold text-[#E02020] uppercase tracking-wider">
+            <Church className="w-4 h-4" />
+            <span>Evangelism Field Record</span>
+          </div>
+          <h2 className="text-xl sm:text-2xl font-black text-[#1E5AA8]">
+            Record Person Met
+          </h2>
+          <p className="text-xs sm:text-sm text-slate-600">
+            Capture contact information, salvation decision, program invitations, and follow-up notes.
+          </p>
         </div>
-        <h2 className="text-xl sm:text-2xl font-black text-[#1E5AA8]">
-          Record Person Met
-        </h2>
-        <p className="text-xs sm:text-sm text-slate-600">
-          Capture contact information, salvation decision, program invitations, and follow-up notes.
-        </p>
+
+        {currentUser ? (
+          <div className="self-start sm:self-auto bg-blue-50 border border-blue-200 px-3 py-1.5 rounded-xl flex items-center gap-2 text-xs font-bold text-[#1E5AA8]">
+            <ShieldCheck className="w-4 h-4 text-emerald-600" />
+            <span>Saving to: {currentUser.displayName || currentUser.email?.split('@')[0] || 'Worker Account'}</span>
+          </div>
+        ) : (
+          <button
+            type="button"
+            onClick={onOpenAuth}
+            className="self-start sm:self-auto bg-amber-50 hover:bg-amber-100 border border-amber-300 px-3 py-1.5 rounded-xl flex items-center gap-1.5 text-xs font-bold text-amber-900 cursor-pointer transition-colors"
+          >
+            <Lock className="w-3.5 h-3.5 text-[#F7931E]" />
+            <span>Sign In to save records</span>
+          </button>
+        )}
       </div>
 
       {errorMessage && (

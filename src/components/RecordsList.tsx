@@ -15,6 +15,7 @@ import {
   Trash2,
   AlertCircle
 } from 'lucide-react';
+import { User } from 'firebase/auth';
 import {
   EvangelismRecord,
   ChurchProgram,
@@ -28,18 +29,18 @@ import { formatDateDisplay } from '../utils/dateUtils';
 
 interface RecordsListProps {
   records: EvangelismRecord[];
-  isWorkerUnlocked: boolean;
-  onUnlockWorker: () => void;
+  currentUser: User | null;
+  onOpenAuth: () => void;
   onSelectRecord: (record: EvangelismRecord) => void;
   onNavigateToAdd: () => void;
-  onUpdateRecord: (id: string, updates: Partial<Omit<EvangelismRecord, 'id'>>) => Promise<void>;
+  onUpdateRecord: (id: string, updates: Partial<Omit<EvangelismRecord, 'id' | 'workerUid'>>) => Promise<void>;
   onDeleteRecord: (id: string) => Promise<void>;
 }
 
 export const RecordsList: React.FC<RecordsListProps> = ({
   records,
-  isWorkerUnlocked,
-  onUnlockWorker,
+  currentUser,
+  onOpenAuth,
   onSelectRecord,
   onNavigateToAdd,
   onDeleteRecord
@@ -124,8 +125,8 @@ export const RecordsList: React.FC<RecordsListProps> = ({
     setOnlyRespondedWell(false);
   };
 
-  // If worker access is locked, show church worker login screen
-  if (!isWorkerUnlocked) {
+  // If worker access is not signed in, show church worker login screen
+  if (!currentUser) {
     return (
       <div className="max-w-md mx-auto py-8 px-4 text-center pb-24">
         <div className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200 shadow-xl space-y-5">
@@ -139,36 +140,35 @@ export const RecordsList: React.FC<RecordsListProps> = ({
 
           <div className="space-y-1">
             <h2 className="text-xl sm:text-2xl font-black text-[#1E5AA8]">
-              Church Worker Login Required
+              Church Worker Sign In Required
             </h2>
             <p className="text-xs font-bold text-[#E02020] uppercase tracking-wider">
               Gospel Labor Ministry
             </p>
             <p className="text-xs sm:text-sm text-slate-600 leading-relaxed pt-1">
-              In accordance with pastoral care and privacy, contacts and phone numbers from street evangelism are restricted to Gospel Labor Ministry workers.
+              To keep outreach contacts and follow-ups confidential, each evangelism worker has a private account. Sign in to view and manage your souls recorded.
             </p>
           </div>
 
           <div className="pt-2 space-y-2.5">
             <button
-              onClick={onUnlockWorker}
+              onClick={onOpenAuth}
               className="w-full py-3.5 px-4 rounded-xl bg-[#F7931E] hover:bg-[#E07F0E] text-slate-950 font-black text-sm shadow-md transition-all active:scale-98 cursor-pointer border border-orange-300 flex items-center justify-center gap-2"
             >
               <Lock className="w-4 h-4 text-slate-950" />
-              <span>Enter Worker Password</span>
+              <span>Sign In as Church Worker</span>
             </button>
 
             <button
               onClick={onNavigateToAdd}
               className="w-full py-2.5 px-4 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs transition-colors cursor-pointer"
             >
-              Back to Add Person Form
+              Go to Add Person Form
             </button>
           </div>
 
           <div className="text-[11px] text-slate-500 pt-2 border-t border-slate-100">
-            Church member out on evangelism? You can freely record souls met on the{' '}
-            <strong className="text-slate-800">Add Person</strong> tab without logging in.
+            Records are strictly isolated per worker — you will only ever see contacts that you recorded.
           </div>
         </div>
       </div>

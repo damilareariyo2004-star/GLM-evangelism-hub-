@@ -13,6 +13,8 @@ export const CHURCH_PROGRAMS: ChurchProgram[] = [
 
 export interface EvangelismRecord {
   id?: string;
+  workerUid: string;
+  workerEmail?: string;
   fullName: string;
   phone: string;
   programs: ChurchProgram[];
@@ -20,7 +22,7 @@ export interface EvangelismRecord {
   respondedWell: boolean;
   notes?: string;
   evangelistName: string;
-  date: string; // YYYY-MM-DD
+  date: string; // DD/MM/YYYY or YYYY-MM-DD
   followedUp: boolean;
   followUpNotes?: string;
   createdAt?: string; // ISO string or timestamp

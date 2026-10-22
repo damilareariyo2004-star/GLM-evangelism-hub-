@@ -1,15 +1,16 @@
 import React from 'react';
-import { Lock, Unlock, Cloud } from 'lucide-react';
+import { Lock, Unlock, Cloud, User as UserIcon } from 'lucide-react';
+import { User } from 'firebase/auth';
 
 interface HeaderProps {
-  isWorkerUnlocked: boolean;
-  onToggleWorkerAuth: () => void;
+  currentUser: User | null;
+  onOpenAuth: () => void;
   recordsCount: number;
 }
 
 export const Header: React.FC<HeaderProps> = ({
-  isWorkerUnlocked,
-  onToggleWorkerAuth,
+  currentUser,
+  onOpenAuth,
   recordsCount
 }) => {
   return (
@@ -43,32 +44,36 @@ export const Header: React.FC<HeaderProps> = ({
           {/* Right Status / Worker Access Controls */}
           <div className="flex items-center gap-2 flex-shrink-0">
             {/* Cloud Sync indicator */}
-            <div className="hidden xs:flex items-center gap-1.5 bg-white/15 px-2.5 py-1 rounded-full text-xs font-medium text-white border border-white/20">
-              <Cloud className="w-3.5 h-3.5 text-orange-300" />
-              <span>{recordsCount} Recorded</span>
-            </div>
+            {currentUser && (
+              <div className="hidden xs:flex items-center gap-1.5 bg-white/15 px-2.5 py-1 rounded-full text-xs font-medium text-white border border-white/20">
+                <Cloud className="w-3.5 h-3.5 text-orange-300" />
+                <span>{recordsCount} Recorded</span>
+              </div>
+            )}
 
-            {/* Worker Lock / Unlock Button */}
+            {/* Worker Account / Sign In Button */}
             <button
-              onClick={onToggleWorkerAuth}
+              onClick={onOpenAuth}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs sm:text-sm font-bold transition-all shadow-sm cursor-pointer ${
-                isWorkerUnlocked
+                currentUser
                   ? 'bg-[#F7931E] text-slate-950 hover:bg-[#e07f0e] border border-orange-300'
                   : 'bg-white/15 text-white hover:bg-white/25 border border-white/30'
               }`}
-              title={isWorkerUnlocked ? 'Worker mode unlocked (tap to lock)' : 'Worker login (tap to unlock)'}
+              title={currentUser ? `Signed in as ${currentUser.email || currentUser.displayName}` : 'Sign in as evangelism worker'}
             >
-              {isWorkerUnlocked ? (
+              {currentUser ? (
                 <>
                   <Unlock className="w-3.5 h-3.5 text-slate-950" />
-                  <span className="hidden sm:inline font-bold">Worker Active (Lock)</span>
-                  <span className="sm:hidden">Active</span>
+                  <span className="hidden sm:inline font-bold">
+                    {currentUser.displayName || currentUser.email?.split('@')[0] || 'Worker Active'}
+                  </span>
+                  <span className="sm:hidden">Account</span>
                 </>
               ) : (
                 <>
                   <Lock className="w-3.5 h-3.5 text-orange-300" />
-                  <span className="hidden sm:inline">Worker Login</span>
-                  <span className="sm:hidden">Login</span>
+                  <span className="hidden sm:inline">Worker Sign In</span>
+                  <span className="sm:hidden">Sign In</span>
                 </>
               )}
             </button>

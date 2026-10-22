@@ -1,0 +1,86 @@
+{
+  "entities": {
+    "EvangelismRecord": {
+      "title": "EvangelismRecord",
+      "description": "A record of an individual met during church evangelism outreach by Gospel Labor Ministry.",
+      "type": "object",
+      "properties": {
+        "fullName": {
+          "type": "string",
+          "description": "Full name of the contact person",
+          "minLength": 1,
+          "maxLength": 150
+        },
+        "phone": {
+          "type": "string",
+          "description": "Phone number or contact info",
+          "minLength": 3,
+          "maxLength": 50
+        },
+        "programs": {
+          "type": "array",
+          "description": "Church programs invited to (e.g. Wednesday Program, Friday Program, Auxano, Sunday Service)"
+        },
+        "isNewConvert": {
+          "type": "boolean",
+          "description": "Indicates whether the person gave their life to Christ as a new convert"
+        },
+        "respondedWell": {
+          "type": "boolean",
+          "description": "Indicates whether the person responded warmly/receptively to the gospel"
+        },
+        "notes": {
+          "type": "string",
+          "description": "Follow-up details, address, prayer requests, or comments from the encounter",
+          "maxLength": 2500
+        },
+        "evangelistName": {
+          "type": "string",
+          "description": "Name of the church worker or evangelist who recorded the contact",
+          "minLength": 1,
+          "maxLength": 150
+        },
+        "date": {
+          "type": "string",
+          "description": "Date of the encounter in YYYY-MM-DD format",
+          "maxLength": 25
+        },
+        "followedUp": {
+          "type": "boolean",
+          "description": "Whether a church worker has completed initial follow-up"
+        },
+        "followUpNotes": {
+          "type": "string",
+          "description": "Follow-up history, notes, or worker feedback",
+          "maxLength": 3000
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Timestamp when the record was created"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Timestamp when the record was last updated"
+        }
+      },
+      "required": [
+        "fullName",
+        "phone",
+        "programs",
+        "isNewConvert",
+        "respondedWell",
+        "evangelistName",
+        "date",
+        "followedUp"
+      ]
+    }
+  },
+  "firestore": {
+    "/records/{recordId}": {
+      "schema": "EvangelismRecord",
+      "description": "Collection of outreach contacts recorded by GLM members"
+    }
+  }
+}

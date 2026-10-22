@@ -1,0 +1,8 @@
+{
+  "name": "GLM Evangelism Hub",
+  "description": "Mobile-friendly web app for Gospel Labor Ministry to record evangelism contacts, track new converts and church program invitations, and coordinate worker follow-ups.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

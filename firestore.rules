@@ -1,0 +1,45 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Default catch-all deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isValidRecord(data) {
+      return data.fullName is string && data.fullName.size() >= 1 && data.fullName.size() <= 150
+        && data.phone is string && data.phone.size() >= 3 && data.phone.size() <= 50
+        && data.programs is list && data.programs.size() <= 10
+        && data.isNewConvert is bool
+        && data.respondedWell is bool
+        && data.evangelistName is string && data.evangelistName.size() >= 1 && data.evangelistName.size() <= 150
+        && data.date is string && data.date.size() <= 25
+        && data.followedUp is bool
+        && (!('notes' in data) || (data.notes is string && data.notes.size() <= 2500))
+        && (!('followUpNotes' in data) || (data.followUpNotes is string && data.followUpNotes.size() <= 3000));
+    }
+
+    match /records/{recordId} {
+      // Outreach workers and church members read & query records
+      allow get, list: if true;
+      // Allow street evangelists to save new souls met during outreach
+      allow create: if isValidId(recordId) && isValidRecord(incoming());
+      // Allow updating notes, follow-up status, or contact details
+      allow update: if isValidId(recordId) && isValidRecord(incoming());
+      // Allow workers to delete duplicate or invalid test entries
+      allow delete: if isValidId(recordId);
+    }
+  }
+}

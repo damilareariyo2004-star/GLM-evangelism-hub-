@@ -236,10 +236,10 @@ export async function deleteEvangelismRecord(workerUid: string, id: string): Pro
  */
 export function calculateDashboardStats(records: EvangelismRecord[]): DashboardStats {
   const programCounts: Record<ChurchProgram, number> = {
-    'Wednesday Program': 0,
-    'Friday Program': 0,
-    'Auxano': 0,
-    'Sunday Service': 0
+    'Sunday Service': 0,
+    'Wednesday Program/Joint Auxano': 0,
+    'Friday Program/Something New': 0,
+    'School Auxano': 0
   };
 
   let totalNewConverts = 0;
@@ -252,8 +252,14 @@ export function calculateDashboardStats(records: EvangelismRecord[]): DashboardS
     if (record.followedUp) totalFollowedUp++;
 
     if (Array.isArray(record.programs)) {
-      for (const p of record.programs) {
-        if (programCounts[p] !== undefined) {
+      for (const rawP of record.programs) {
+        let p: ChurchProgram | undefined;
+        if (rawP === 'Sunday Service') p = 'Sunday Service';
+        else if (rawP === 'Wednesday Program/Joint Auxano' || rawP === 'Wednesday Program / Joint Auxano') p = 'Wednesday Program/Joint Auxano';
+        else if (rawP === 'Friday Program/Something New' || rawP === 'Friday Program / Something New') p = 'Friday Program/Something New';
+        else if (rawP === 'School Auxano') p = 'School Auxano';
+
+        if (p && programCounts[p] !== undefined) {
           programCounts[p]++;
         }
       }

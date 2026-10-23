@@ -11,7 +11,7 @@ test('calculateDashboardStats computes correct totals and program breakdowns for
       workerEmail: 'worker1@gospellabor.org',
       fullName: 'John Doe',
       phone: '1234567890',
-      programs: ['Wednesday Program', 'Auxano'],
+      programs: ['Wednesday Program / Joint Auxano', 'School Auxano'],
       isNewConvert: true,
       respondedWell: true,
       evangelistName: 'Worker 1',
@@ -24,7 +24,7 @@ test('calculateDashboardStats computes correct totals and program breakdowns for
       workerEmail: 'worker1@gospellabor.org',
       fullName: 'Jane Smith',
       phone: '0987654321',
-      programs: ['Auxano', 'Sunday Service'],
+      programs: ['School Auxano', 'Sunday Service'],
       isNewConvert: false,
       respondedWell: true,
       evangelistName: 'Worker 1',
@@ -37,7 +37,7 @@ test('calculateDashboardStats computes correct totals and program breakdowns for
       workerEmail: 'worker1@gospellabor.org',
       fullName: 'Sam Wilson',
       phone: '5551234567',
-      programs: ['Friday Program'],
+      programs: ['Friday Program / Something New'],
       isNewConvert: true,
       respondedWell: false,
       evangelistName: 'Worker 1',
@@ -51,9 +51,9 @@ test('calculateDashboardStats computes correct totals and program breakdowns for
   assert.equal(stats.totalNewConverts, 2);
   assert.equal(stats.totalRespondedWell, 2);
   assert.equal(stats.totalFollowedUp, 1);
-  assert.equal(stats.programCounts['Wednesday Program'], 1);
-  assert.equal(stats.programCounts['Friday Program'], 1);
-  assert.equal(stats.programCounts['Auxano'], 2);
+  assert.equal(stats.programCounts['Wednesday Program / Joint Auxano'], 1);
+  assert.equal(stats.programCounts['Friday Program / Something New'], 1);
+  assert.equal(stats.programCounts['School Auxano'], 2);
   assert.equal(stats.programCounts['Sunday Service'], 1);
 });
 
@@ -76,7 +76,7 @@ test('Records are correctly assigned workerUid and separated', () => {
     workerUid: 'user_222',
     fullName: 'Sarah Benson',
     phone: '08099887766',
-    programs: ['Auxano'],
+    programs: ['School Auxano'],
     isNewConvert: false,
     respondedWell: true,
     evangelistName: 'Worker Sarah',

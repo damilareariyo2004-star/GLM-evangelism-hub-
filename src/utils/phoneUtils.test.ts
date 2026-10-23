@@ -4,6 +4,9 @@ import {
   sanitizePhoneNumber,
   getTelLink,
   getWhatsAppLink,
+  getFollowUpMessage,
+  getProgramInvitationMessage,
+  getProgramWhatsAppLink,
   validatePhoneNumber,
   normalizePhoneForComparison,
   formatWhatsAppNumber
@@ -38,9 +41,29 @@ test('validatePhoneNumber checks validity accurately', () => {
   assert.equal(validatePhoneNumber('').isValid, false);
 });
 
-test('getWhatsAppLink formats url with 234 international number and greeting', () => {
-  const link = getWhatsAppLink('08081234567', 'Sister Sarah');
+test('getFollowUpMessage generates exact requested text dynamically', () => {
+  const msg = getFollowUpMessage('Sister Sarah', 'Brother Emmanuel');
+  assert.equal(
+    msg,
+    "Hello Sister Sarah, good evening. I am Brother Emmanuel from Gospel Labour Ministry. It was nice meeting you today during evangelism. I am interested in following you up. I hope you don't mind if we keep in touch? God bless you."
+  );
+});
+
+test('getWhatsAppLink formats url with 234 international number and exact follow-up message', () => {
+  const link = getWhatsAppLink('08081234567', 'Sister Sarah', 'Brother Emmanuel');
   assert.match(link, /^https:\/\/wa\.me\/2348081234567\?text=/);
   assert.ok(link.includes('Sister%20Sarah'));
-  assert.ok(link.includes('Gospel%20Labor%20Ministry'));
+  assert.ok(link.includes('Brother%20Emmanuel'));
+  assert.ok(link.includes('Gospel%20Labour%20Ministry'));
+});
+
+test('getProgramWhatsAppLink formats invitation message with program name', () => {
+  const link = getProgramWhatsAppLink(
+    '08081234567',
+    'Wednesday Program / Joint Auxano',
+    'Brother John',
+    'Evangelist Mark'
+  );
+  assert.match(link, /^https:\/\/wa\.me\/2348081234567\?text=/);
+  assert.ok(link.includes('Wednesday%20Program%20%2F%20Joint%20Auxano'));
 });

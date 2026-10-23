@@ -83,16 +83,62 @@ export function formatWhatsAppNumber(phone: string): string {
 }
 
 /**
- * Builds the complete WhatsApp click-to-chat URL with warm Gospel Labor Ministry greeting
+ * Builds the official Gospel Labour Ministry follow-up message:
+ * “Hello [Person’s Name], This is [Evangelist’s Name] from Gospel Labour Ministry. We met during evangelism today and I was really blessed to meet you. I would love to follow you up and keep in touch with you. Hope you are doing great. God bless you!”
  */
-export function getWhatsAppLink(phone: string, personName?: string, churchName = 'Gospel Labor Ministry'): string {
+export function getFollowUpMessage(contactName?: string, evangelistName?: string): string {
+  const contact = contactName && contactName.trim() ? contactName.trim() : 'Friend';
+  const evangelist = evangelistName && evangelistName.trim() ? evangelistName.trim() : 'an Evangelist';
+  return `Hello ${contact}, This is ${evangelist} from Gospel Labour Ministry. We met during evangelism today and I was really blessed to meet you. I would love to follow you up and keep in touch with you. Hope you are doing great. God bless you!`;
+}
+
+/**
+ * Builds an official Gospel Labour Ministry program invitation message for WhatsApp
+ */
+export function getProgramInvitationMessage(
+  program: string,
+  contactName?: string,
+  evangelistName?: string
+): string {
+  const contact = contactName && contactName.trim() ? contactName.trim() : 'Friend';
+  const evangelist = evangelistName && evangelistName.trim() ? evangelistName.trim() : 'an Evangelist';
+  return `Hello ${contact}, good day. I am ${evangelist} from Gospel Labour Ministry. We warmly invite you to join us for ${program}. We would love to fellowship with you! God bless you.`;
+}
+
+/**
+ * Builds the complete WhatsApp click-to-chat URL with dynamic Evangelist name and Contact name
+ * for Action A: WhatsApp — Send Message
+ */
+export function getWhatsAppLink(phone: string, contactName?: string, evangelistName?: string): string {
   const cleanDigits = formatWhatsAppNumber(phone);
   if (!cleanDigits) return '#';
 
-  const greetingName = personName ? ` ${personName}` : '';
-  const message = encodeURIComponent(
-    `Hello${greetingName}! Grace and peace to you from ${churchName}. We were so blessed to meet you during evangelism and wanted to follow up with you. God bless you!`
-  );
+  const message = encodeURIComponent(getFollowUpMessage(contactName, evangelistName));
+  return `https://wa.me/${cleanDigits}?text=${message}`;
+}
 
+/**
+ * Builds the direct WhatsApp DM URL (without prefilled text) for Action B:
+ * Opening the person's DM to manually attach a sermon document (📎 -> Document)
+ */
+export function getDirectWhatsAppDmUrl(phone: string): string {
+  const cleanDigits = formatWhatsAppNumber(phone);
+  if (!cleanDigits) return '#';
+  return `https://wa.me/${cleanDigits}`;
+}
+
+/**
+ * Builds a WhatsApp click-to-chat URL for inviting a contact to a specific church program
+ */
+export function getProgramWhatsAppLink(
+  phone: string,
+  program: string,
+  contactName?: string,
+  evangelistName?: string
+): string {
+  const cleanDigits = formatWhatsAppNumber(phone);
+  if (!cleanDigits) return '#';
+
+  const message = encodeURIComponent(getProgramInvitationMessage(program, contactName, evangelistName));
   return `https://wa.me/${cleanDigits}?text=${message}`;
 }

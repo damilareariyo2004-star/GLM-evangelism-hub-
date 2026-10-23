@@ -12,6 +12,8 @@ import { AddPersonForm } from './components/AddPersonForm';
 import { RecordsList } from './components/RecordsList';
 import { RecordDetailModal } from './components/RecordDetailModal';
 import { WorkerAuthModal } from './components/WorkerAuthModal';
+import { ExportReportModal } from './components/ExportReportModal';
+import { SermonSharing } from './components/SermonSharing';
 import {
   subscribeToWorkerRecords,
   createEvangelismRecord,
@@ -28,6 +30,7 @@ export default function App() {
   const [records, setRecords] = useState<EvangelismRecord[]>([]);
   const [selectedRecord, setSelectedRecord] = useState<EvangelismRecord | null>(null);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const [isExportModalOpen, setIsExportModalOpen] = useState(false);
 
   // Test Firebase connection on mount
   useEffect(() => {
@@ -133,6 +136,8 @@ export default function App() {
             onOpenAuth={() => setIsAuthModalOpen(true)}
             onNavigateToAdd={() => setCurrentTab('add')}
             onNavigateToRecords={() => setCurrentTab('records')}
+            onNavigateToSermons={() => setCurrentTab('sermons')}
+            onOpenExportModal={() => setIsExportModalOpen(true)}
             onSelectRecord={(rec) => {
               if (currentUser) {
                 setSelectedRecord(rec);
@@ -165,7 +170,21 @@ export default function App() {
             onDeleteRecord={handleDeleteRecord}
           />
         )}
+
+        {currentTab === 'sermons' && (
+          <SermonSharing
+            records={records}
+            onBackToDashboard={() => setCurrentTab('dashboard')}
+          />
+        )}
       </main>
+
+      {/* Export Report Modal */}
+      <ExportReportModal
+        isOpen={isExportModalOpen}
+        onClose={() => setIsExportModalOpen(false)}
+        records={records}
+      />
 
       {/* Record Detail Modal */}
       {selectedRecord && (

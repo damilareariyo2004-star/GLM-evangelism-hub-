@@ -9,11 +9,20 @@ import {
   Edit3,
   Trash2,
   Save,
-  AlertCircle
+  AlertCircle,
+  FileAudio,
+  Download,
+  ExternalLink
 } from 'lucide-react';
 import { EvangelismRecord, ChurchProgram, CHURCH_PROGRAMS } from '../types';
-import { getTelLink, getWhatsAppLink } from '../utils/phoneUtils';
+import {
+  getTelLink,
+  getWhatsAppLink,
+  getDirectWhatsAppDmUrl,
+  getProgramWhatsAppLink
+} from '../utils/phoneUtils';
 import { formatDateDisplay, getTodayFormatted } from '../utils/dateUtils';
+import { GLM_SERMONS } from '../services/sermonService';
 
 interface RecordDetailModalProps {
   record: EvangelismRecord | null;
@@ -33,6 +42,7 @@ export const RecordDetailModal: React.FC<RecordDetailModalProps> = ({
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [showShareSermonModal, setShowShareSermonModal] = useState(false);
 
   // Edit state
   const [fullName, setFullName] = useState(record.fullName);
@@ -122,7 +132,7 @@ export const RecordDetailModal: React.FC<RecordDetailModalProps> = ({
   };
 
   const telLink = getTelLink(phone);
-  const waLink = getWhatsAppLink(phone, fullName);
+  const waLink = getWhatsAppLink(phone, fullName, record.evangelistName || 'an Evangelist');
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/60 backdrop-blur-xs overflow-y-auto">
@@ -312,26 +322,38 @@ export const RecordDetailModal: React.FC<RecordDetailModalProps> = ({
         ) : (
           /* View Mode */
           <div className="space-y-4">
-            {/* Direct Calling & WhatsApp Bar */}
-            <div className="grid grid-cols-2 gap-2.5">
+            {/* Direct Calling & Two Separate WhatsApp Actions */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
               <a
                 href={telLink}
-                className="flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-[#1E5AA8] hover:bg-[#15427D] text-white font-bold text-xs sm:text-sm shadow-xs transition-colors"
+                className="flex items-center justify-center gap-1.5 py-3 px-3 rounded-xl bg-[#1E5AA8] hover:bg-[#15427D] text-white font-bold text-xs shadow-xs transition-colors"
               >
                 <Phone className="w-4 h-4" />
                 <span>Call Person</span>
               </a>
 
+              {/* Action A: WhatsApp — Send Message */}
               <a
                 href={waLink}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs sm:text-sm shadow-xs transition-colors"
-                title="Open WhatsApp with Nigerian 234 international number"
+                className="flex items-center justify-center gap-1.5 py-3 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-xs transition-colors"
+                title="WhatsApp — Send Message: Opens WhatsApp DM with personalized greeting"
               >
                 <MessageCircle className="w-4 h-4" />
-                <span>WhatsApp</span>
+                <span>WhatsApp — Send Message</span>
               </a>
+
+              {/* Action B: WhatsApp — Share Sermon File */}
+              <button
+                type="button"
+                onClick={() => setShowShareSermonModal(true)}
+                className="flex items-center justify-center gap-1.5 py-3 px-3 rounded-xl bg-teal-600 hover:bg-teal-700 text-white font-bold text-xs shadow-xs transition-colors cursor-pointer"
+                title="WhatsApp — Share Sermon File: Opens WhatsApp DM with document attachment instructions"
+              >
+                <FileAudio className="w-4 h-4" />
+                <span>WhatsApp — Share Sermon File</span>
+              </button>
             </div>
 
             {/* Overview Card */}
@@ -368,14 +390,26 @@ export const RecordDetailModal: React.FC<RecordDetailModalProps> = ({
                 <span className="text-slate-500 font-semibold block mb-1">Programs Invited To:</span>
                 <div className="flex flex-wrap gap-1.5">
                   {record.programs && record.programs.length > 0 ? (
-                    record.programs.map((p) => (
-                      <span
-                        key={p}
-                        className="text-xs font-bold bg-white border border-slate-300 text-slate-800 px-2.5 py-0.5 rounded-lg"
-                      >
-                        {p}
-                      </span>
-                    ))
+                    record.programs.map((p) => {
+                      const progWaLink = getProgramWhatsAppLink(phone, p, fullName, record.evangelistName);
+                      return (
+                        <span
+                          key={p}
+                          className="inline-flex items-center gap-1.5 text-xs font-bold bg-white border border-slate-300 text-slate-800 px-2.5 py-1 rounded-lg shadow-2xs"
+                        >
+                          <span>{p}</span>
+                          <a
+                            href={progWaLink}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-emerald-600 hover:text-emerald-700 p-0.5 rounded hover:bg-emerald-50 transition-colors"
+                            title={`Send ${p} invitation via WhatsApp`}
+                          >
+                            <MessageCircle className="w-3.5 h-3.5" />
+                          </a>
+                        </span>
+                      );
+                    })
                   ) : (
                     <span className="text-slate-400 italic text-xs">No specific program</span>
                   )}
@@ -444,6 +478,83 @@ export const RecordDetailModal: React.FC<RecordDetailModalProps> = ({
           </div>
         )}
       </div>
+
+      {/* WhatsApp — Share Sermon File Modal (Action B) */}
+      {showShareSermonModal && (
+        <div className="fixed inset-0 z-60 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-xs animate-in fade-in">
+          <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-200 space-y-4">
+            <div className="flex items-start justify-between border-b border-slate-100 pb-3">
+              <div className="flex items-center gap-2 text-teal-700">
+                <FileAudio className="w-5 h-5 flex-shrink-0" />
+                <h3 className="font-black text-base text-slate-900">
+                  WhatsApp — Share Sermon File
+                </h3>
+              </div>
+              <button
+                onClick={() => setShowShareSermonModal(false)}
+                className="text-slate-400 hover:text-slate-600 p-1 cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="bg-teal-50/70 p-3 rounded-2xl border border-teal-200 text-xs space-y-1">
+              <div className="font-bold text-teal-950">
+                Recipient: <span className="text-[#1E5AA8]">{fullName}</span> ({phone})
+              </div>
+              <div className="text-teal-800 font-semibold">
+                Sermon: Knowing God — Apostle Joseph Ibrahim (35.8 MB MP3)
+              </div>
+            </div>
+
+            <div className="space-y-2 text-xs text-slate-700">
+              <p className="font-extrabold text-slate-900">
+                Manual Document Attachment Instructions:
+              </p>
+              <ol className="space-y-1.5 list-decimal list-inside bg-slate-50 p-3 rounded-xl border border-slate-200 leading-relaxed font-medium">
+                <li>Tap <strong>Open WhatsApp DM</strong> below to open {fullName}'s chat.</li>
+                <li>Tap the attachment icon (<strong>📎</strong> or <strong>+</strong>) in WhatsApp.</li>
+                <li>Select <strong>Document</strong> (WhatsApp limits standard audio to 16 MB, but permits Documents up to 2 GB; this sermon is 35.8 MB).</li>
+                <li>Choose the sermon audio file (<code>Knowing_God_Apostle_Joseph_Ibrahim.mp3</code>) and send manually.</li>
+              </ol>
+            </div>
+
+            <div className="pt-2 space-y-2">
+              <a
+                href={getDirectWhatsAppDmUrl(phone)}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={() => setShowShareSermonModal(false)}
+                className="w-full py-3 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs sm:text-sm flex items-center justify-center gap-2 shadow-xs transition-colors"
+              >
+                <MessageCircle className="w-4 h-4" />
+                <span>1. Open {fullName}'s WhatsApp DM</span>
+                <ExternalLink className="w-3.5 h-3.5 opacity-80" />
+              </a>
+
+              <a
+                href={GLM_SERMONS[0]?.audioUrl || '/assets/aistudio/Knowing_God_2babf39d.mp3'}
+                download="Knowing_God_Apostle_Joseph_Ibrahim.mp3"
+                className="w-full py-2.5 px-4 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs flex items-center justify-center gap-2 transition-colors"
+                title="Download MP3 file if not yet stored on your phone"
+              >
+                <Download className="w-3.5 h-3.5 text-slate-600" />
+                <span>Download Sermon MP3 (Save to Phone if needed)</span>
+              </a>
+            </div>
+
+            <div className="pt-1 flex justify-end">
+              <button
+                type="button"
+                onClick={() => setShowShareSermonModal(false)}
+                className="px-4 py-2 text-xs font-bold text-slate-600 hover:bg-slate-100 rounded-xl cursor-pointer"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

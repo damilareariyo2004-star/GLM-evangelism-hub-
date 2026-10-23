@@ -10,7 +10,8 @@ import {
   Church,
   Clock,
   ChevronDown,
-  ChevronUp
+  ChevronUp,
+  Radio
 } from 'lucide-react';
 import { User } from 'firebase/auth';
 import { DashboardStats, EvangelismRecord, ChurchProgram } from '../types';
@@ -24,6 +25,8 @@ interface DashboardProps {
   onOpenAuth: () => void;
   onNavigateToAdd: () => void;
   onNavigateToRecords: () => void;
+  onNavigateToSermons?: () => void;
+  onOpenExportModal?: () => void;
   onSelectRecord: (record: EvangelismRecord) => void;
 }
 
@@ -34,6 +37,8 @@ export const Dashboard: React.FC<DashboardProps> = ({
   onOpenAuth,
   onNavigateToAdd,
   onNavigateToRecords,
+  onNavigateToSermons,
+  onOpenExportModal,
   onSelectRecord
 }) => {
   // State to track expanded note IDs
@@ -52,32 +57,32 @@ export const Dashboard: React.FC<DashboardProps> = ({
     description: string;
   }[] = [
     {
-      name: 'Wednesday Program',
-      border: 'border-blue-200',
-      bg: 'bg-blue-50/60',
-      badgeColor: 'text-[#1E5AA8]',
-      description: 'Mid-week Word & Prayer'
-    },
-    {
-      name: 'Friday Program',
-      border: 'border-red-200',
-      bg: 'bg-red-50/50',
-      badgeColor: 'text-[#E02020]',
-      description: 'Prayer Meeting & Vigils'
-    },
-    {
-      name: 'Auxano',
-      border: 'border-orange-300',
-      bg: 'bg-orange-50/70',
-      badgeColor: 'text-[#F7931E]',
-      description: 'Growth & Discipleship Intensive'
-    },
-    {
       name: 'Sunday Service',
       border: 'border-blue-200',
       bg: 'bg-blue-50/60',
       badgeColor: 'text-[#1E5AA8]',
-      description: 'Glorious Worship Service'
+      description: 'Glorious Worship & Word Service'
+    },
+    {
+      name: 'Wednesday Program/Joint Auxano',
+      border: 'border-blue-200',
+      bg: 'bg-blue-50/60',
+      badgeColor: 'text-[#1E5AA8]',
+      description: 'Mid-week Word & Prayer Intensive'
+    },
+    {
+      name: 'Friday Program/Something New',
+      border: 'border-red-200',
+      bg: 'bg-red-50/50',
+      badgeColor: 'text-[#E02020]',
+      description: 'Revival, Prayer & Breakthrough Night'
+    },
+    {
+      name: 'School Auxano',
+      border: 'border-orange-300',
+      bg: 'bg-orange-50/70',
+      badgeColor: 'text-[#F7931E]',
+      description: 'Campus Discipleship & Training'
     }
   ];
 
@@ -411,10 +416,27 @@ export const Dashboard: React.FC<DashboardProps> = ({
               <ArrowRight className="w-4 h-4" />
             </button>
 
+            {onNavigateToSermons && (
+              <button
+                onClick={onNavigateToSermons}
+                className="w-full flex items-center justify-between p-3 rounded-xl bg-gradient-to-r from-red-50 to-orange-50 hover:from-red-100 hover:to-orange-100 text-[#E02020] font-bold text-sm transition-colors cursor-pointer border border-red-200"
+              >
+                <div className="flex items-center gap-2.5">
+                  <Radio className="w-4 h-4 text-[#E02020]" />
+                  <span>Telegram Message Library</span>
+                </div>
+                <span className="text-xs bg-red-100 text-[#E02020] px-2 py-0.5 rounded-full font-bold">
+                  t.me/glmchannel
+                </span>
+              </button>
+            )}
+
             <button
               onClick={() => {
                 if (!currentUser) {
                   onOpenAuth();
+                } else if (onOpenExportModal) {
+                  onOpenExportModal();
                 } else {
                   downloadRecordsCsv(recentRecords);
                 }
@@ -423,10 +445,10 @@ export const Dashboard: React.FC<DashboardProps> = ({
             >
               <div className="flex items-center gap-2.5">
                 <FileSpreadsheet className="w-4 h-4 text-emerald-600" />
-                <span>Export to CSV</span>
+                <span>Weekly Outreach Report</span>
               </div>
-              <span className="text-xs bg-slate-100 px-2 py-0.5 rounded text-slate-500 font-semibold">
-                Excel
+              <span className="text-xs bg-emerald-50 text-emerald-700 border border-emerald-200 px-2 py-0.5 rounded font-semibold">
+                CSV Export
               </span>
             </button>
           </div>

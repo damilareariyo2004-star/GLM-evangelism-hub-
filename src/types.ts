@@ -1,14 +1,14 @@
 export type ChurchProgram = 
-  | 'Wednesday Program'
-  | 'Friday Program'
-  | 'Auxano'
-  | 'Sunday Service';
+  | 'Sunday Service'
+  | 'Wednesday Program/Joint Auxano'
+  | 'Friday Program/Something New'
+  | 'School Auxano';
 
 export const CHURCH_PROGRAMS: ChurchProgram[] = [
-  'Wednesday Program',
-  'Friday Program',
-  'Auxano',
-  'Sunday Service'
+  'Sunday Service',
+  'Wednesday Program/Joint Auxano',
+  'Friday Program/Something New',
+  'School Auxano'
 ];
 
 export interface EvangelismRecord {
@@ -17,7 +17,7 @@ export interface EvangelismRecord {
   workerEmail?: string;
   fullName: string;
   phone: string;
-  programs: ChurchProgram[];
+  programs: (ChurchProgram | string)[];
   isNewConvert: boolean;
   respondedWell: boolean;
   notes?: string;
@@ -50,3 +50,32 @@ export interface DashboardStats {
   totalFollowedUp: number;
   programCounts: Record<ChurchProgram, number>;
 }
+
+export type DateRangePreset = 'all' | 'this_week' | 'last_7_days' | 'this_month' | 'custom';
+
+export interface DateRangeFilter {
+  preset: DateRangePreset;
+  startDate?: string; // YYYY-MM-DD
+  endDate?: string;   // YYYY-MM-DD
+}
+
+export interface Sermon {
+  id: string;
+  title: string;
+  series?: string;
+  minister: string;
+  speaker?: string; // Backwards compatibility alias
+  date: string; // YYYY-MM-DD or DD/MM/YYYY
+  scripture?: string;
+  duration?: string; // e.g. "1:29:59"
+  durationFormatted?: string; // e.g. "1:29:59"
+  description: string;
+  channelUrl: string; // e.g. https://t.me/glmchannel
+  postUrl: string; // e.g. https://t.me/glmchannel/1331
+  telegramPostUrl: string; // Backwards compatibility alias
+  audioUrl?: string; // Direct audio download/streaming link
+  audioFileName?: string; // Sanitized file name for download
+  audioSizeFormatted?: string; // e.g. "35.8 MB"
+  tags: string[];
+}
+

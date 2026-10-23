@@ -1,6 +1,12 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { escapeCsvField, generateRecordsCsv } from './csvExport';
+import {
+  escapeCsvField,
+  generateRecordsCsv,
+  normalizeDateToYmd,
+  filterRecordsByDateRange,
+  getPresetDateBounds
+} from './csvExport';
 import { EvangelismRecord } from '../types';
 
 test('escapeCsvField escapes strings and quotes properly', () => {
@@ -17,7 +23,7 @@ test('generateRecordsCsv outputs valid CSV with DD/MM/YYYY date formatting', () 
       workerUid: 'worker-123',
       fullName: 'Brother David',
       phone: '+2348081122233',
-      programs: ['Wednesday Program', 'Sunday Service'],
+      programs: ['Wednesday Program / Joint Auxano', 'Sunday Service'],
       isNewConvert: true,
       respondedWell: true,
       notes: 'Asked about youth fellowship',
@@ -34,3 +40,70 @@ test('generateRecordsCsv outputs valid CSV with DD/MM/YYYY date formatting', () 
   assert.ok(csv.includes('"21/10/2026"')); // DD/MM/YYYY
   assert.ok(csv.includes('"Yes"')); // isNewConvert
 });
+
+test('normalizeDateToYmd correctly handles DD/MM/YYYY and YYYY-MM-DD', () => {
+  assert.equal(normalizeDateToYmd('22/10/2026'), '2026-10-22');
+  assert.equal(normalizeDateToYmd('2026-10-22'), '2026-10-22');
+  assert.equal(normalizeDateToYmd(''), '');
+  assert.equal(normalizeDateToYmd(null), '');
+});
+
+test('filterRecordsByDateRange correctly filters records within preset or custom range', () => {
+  const records: EvangelismRecord[] = [
+    {
+      id: 'r1',
+      workerUid: 'w1',
+      fullName: 'John Oct 20',
+      phone: '080111',
+      programs: ['Sunday Service'],
+      isNewConvert: true,
+      respondedWell: true,
+      evangelistName: 'Worker 1',
+      date: '2026-10-20',
+      followedUp: true
+    },
+    {
+      id: 'r2',
+      workerUid: 'w1',
+      fullName: 'Mary Oct 22',
+      phone: '080222',
+      programs: ['Wednesday Program / Joint Auxano'],
+      isNewConvert: false,
+      respondedWell: true,
+      evangelistName: 'Worker 1',
+      date: '22/10/2026', // DD/MM/YYYY format
+      followedUp: false
+    },
+    {
+      id: 'r3',
+      workerUid: 'w1',
+      fullName: 'Paul Sep 15',
+      phone: '080333',
+      programs: ['Friday Program / Something New'],
+      isNewConvert: false,
+      respondedWell: false,
+      evangelistName: 'Worker 1',
+      date: '2026-09-15',
+      followedUp: false
+    }
+  ];
+
+  // Reference date: Thursday, 2026-10-22
+  const refDate = new Date('2026-10-22T12:00:00Z');
+
+  // All preset returns all 3 records
+  const allRes = filterRecordsByDateRange(records, { preset: 'all' }, refDate);
+  assert.equal(allRes.length, 3);
+
+  // Last 7 days includes Oct 20 and Oct 22, excludes Sep 15
+  const last7 = filterRecordsByDateRange(records, { preset: 'last_7_days' }, refDate);
+  assert.equal(last7.length, 2);
+  assert.ok(last7.some((r: EvangelismRecord) => r.id === 'r1'));
+  assert.ok(last7.some((r: EvangelismRecord) => r.id === 'r2'));
+
+  // Custom range
+  const custom = filterRecordsByDateRange(records, { preset: 'custom', startDate: '2026-10-21', endDate: '2026-10-23' }, refDate);
+  assert.equal(custom.length, 1);
+  assert.equal(custom[0].id, 'r2');
+});
+

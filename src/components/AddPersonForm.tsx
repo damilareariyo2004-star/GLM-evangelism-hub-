@@ -264,20 +264,20 @@ export const AddPersonForm: React.FC<AddPersonFormProps> = ({
       {/* Top Title */}
       <div className="mb-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <div className="flex items-center gap-2 text-xs font-bold text-[#E02020] uppercase tracking-wider">
-            <Church className="w-4 h-4" />
+          <div className="flex items-center gap-2 text-xs font-semibold text-slate-500 uppercase tracking-wider">
+            <Church className="w-4 h-4 text-[#0F2744]" />
             <span>Evangelism Field Record</span>
           </div>
-          <h2 className="text-xl sm:text-2xl font-black text-[#1E5AA8]">
+          <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-slate-900 mt-0.5">
             Record Person Met
           </h2>
-          <p className="text-xs sm:text-sm text-slate-600">
+          <p className="text-xs sm:text-sm text-slate-500">
             Capture contact information, salvation decision, program invitations, and follow-up notes.
           </p>
         </div>
 
         {currentUser ? (
-          <div className="self-start sm:self-auto bg-blue-50 border border-blue-200 px-3 py-1.5 rounded-xl flex items-center gap-2 text-xs font-bold text-[#1E5AA8]">
+          <div className="self-start sm:self-auto bg-slate-100 border border-slate-200 px-3 py-1.5 rounded-xl flex items-center gap-2 text-xs font-semibold text-slate-800">
             <ShieldCheck className="w-4 h-4 text-emerald-600" />
             <span>Saving to: {currentUser.displayName || currentUser.email?.split('@')[0] || 'Worker Account'}</span>
           </div>
@@ -285,27 +285,27 @@ export const AddPersonForm: React.FC<AddPersonFormProps> = ({
           <button
             type="button"
             onClick={onOpenAuth}
-            className="self-start sm:self-auto bg-amber-50 hover:bg-amber-100 border border-amber-300 px-3 py-1.5 rounded-xl flex items-center gap-1.5 text-xs font-bold text-amber-900 cursor-pointer transition-colors"
+            className="self-start sm:self-auto bg-amber-50 hover:bg-amber-100 border border-amber-300 px-3 py-1.5 rounded-xl flex items-center gap-1.5 text-xs font-bold text-amber-900 cursor-pointer transition-colors min-h-[40px]"
           >
-            <Lock className="w-3.5 h-3.5 text-[#F7931E]" />
+            <Lock className="w-3.5 h-3.5 text-amber-600" />
             <span>Sign In to save records</span>
           </button>
         )}
       </div>
 
       {errorMessage && (
-        <div className="mb-4 p-3.5 rounded-xl bg-red-50 border border-red-200 text-[#E02020] text-xs sm:text-sm flex items-center gap-2">
-          <AlertCircle className="w-4 h-4 flex-shrink-0" />
+        <div className="mb-4 p-3.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-xs sm:text-sm flex items-center gap-2 font-medium">
+          <AlertCircle className="w-4 h-4 flex-shrink-0 text-rose-600" />
           <span><strong>Error:</strong> {errorMessage}</span>
         </div>
       )}
 
-      <form onSubmit={handleSubmit} className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 sm:p-7 space-y-6">
+      <form onSubmit={handleSubmit} className="bg-white rounded-2xl border border-slate-200/90 shadow-2xs p-5 sm:p-7 space-y-6">
         {/* Full Name & Phone Number */}
         <div className="space-y-4">
           <div>
-            <label htmlFor="fullName" className="block text-xs sm:text-sm font-bold text-slate-800 mb-1.5">
-              Full Name <span className="text-[#E02020] font-black">*</span>
+            <label htmlFor="fullName" className="block text-xs sm:text-sm font-semibold text-slate-800 mb-1.5">
+              Full Name <span className="text-rose-600 font-bold">*</span>
             </label>
             <div className="relative">
               <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
@@ -318,14 +318,14 @@ export const AddPersonForm: React.FC<AddPersonFormProps> = ({
                 value={fullName}
                 onChange={(e) => setFullName(e.target.value)}
                 placeholder="e.g. Sister Grace Adebayo"
-                className="w-full pl-10 pr-3.5 py-2.5 sm:py-3 rounded-xl border border-slate-300 focus:border-[#1E5AA8] focus:ring-2 focus:ring-blue-500/20 text-sm text-slate-900 placeholder:text-slate-400 outline-none transition-all"
+                className="w-full pl-10 pr-3.5 py-2.5 sm:py-3 rounded-xl border border-slate-300 focus:border-[#0F2744] focus:ring-1 focus:ring-[#0F2744] text-sm text-slate-900 placeholder:text-slate-400 outline-none transition-all min-h-[44px]"
               />
             </div>
           </div>
 
           <div>
-            <label htmlFor="phone" className="block text-xs sm:text-sm font-bold text-slate-800 mb-1.5">
-              Phone Number / Contact <span className="text-[#E02020] font-black">*</span>
+            <label htmlFor="phone" className="block text-xs sm:text-sm font-semibold text-slate-800 mb-1.5">
+              Phone Number / Contact <span className="text-rose-600 font-bold">*</span>
             </label>
             <div className="relative">
               <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
@@ -338,27 +338,27 @@ export const AddPersonForm: React.FC<AddPersonFormProps> = ({
                 value={phone}
                 onChange={handlePhoneChange}
                 placeholder="e.g. 08081234567 or +234..."
-                className={`w-full pl-10 pr-3.5 py-2.5 sm:py-3 rounded-xl border text-sm text-slate-900 placeholder:text-slate-400 outline-none transition-all ${
+                className={`w-full pl-10 pr-3.5 py-2.5 sm:py-3 rounded-xl border text-sm text-slate-900 placeholder:text-slate-400 outline-none transition-all min-h-[44px] ${
                   phoneValidationError
-                    ? 'border-red-400 bg-red-50/30 focus:ring-red-500/20'
-                    : 'border-slate-300 focus:border-[#1E5AA8] focus:ring-2 focus:ring-blue-500/20'
+                    ? 'border-rose-400 bg-rose-50/30 focus:border-rose-500'
+                    : 'border-slate-300 focus:border-[#0F2744] focus:ring-1 focus:ring-[#0F2744]'
                 }`}
               />
             </div>
 
             {phoneValidationError && (
-              <p className="text-xs text-red-600 mt-1 font-semibold flex items-center gap-1">
+              <p className="text-xs text-rose-600 mt-1 font-semibold flex items-center gap-1">
                 <AlertCircle className="w-3.5 h-3.5" />
                 <span>{phoneValidationError}</span>
               </p>
             )}
 
-            {/* Requirement 9: Warning if phone number already exists */}
+            {/* Warning if phone number already exists */}
             {duplicateRecordMatch && (
-              <div className="mt-2 p-3 bg-amber-50 border border-amber-300 rounded-xl text-xs text-amber-900 flex items-start gap-2">
-                <AlertTriangle className="w-4 h-4 text-[#F7931E] flex-shrink-0 mt-0.5" />
+              <div className="mt-2.5 p-3 bg-amber-50 border border-amber-300 rounded-xl text-xs text-amber-900 flex items-start gap-2">
+                <AlertTriangle className="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5" />
                 <div>
-                  <span className="font-bold text-[#E07F0E]">Warning: Duplicate phone number!</span>
+                  <span className="font-bold">Warning: Duplicate phone number!</span>
                   <p className="mt-0.5 text-slate-700">
                     This contact is already recorded for <strong>{duplicateRecordMatch.fullName}</strong> on {formatDateDisplay(duplicateRecordMatch.date)} by <em>{duplicateRecordMatch.evangelistName}</em>.
                   </p>
@@ -372,16 +372,13 @@ export const AddPersonForm: React.FC<AddPersonFormProps> = ({
           </div>
         </div>
 
-        {/* Invited to (select one or more) - Full text, never truncated */}
+        {/* Invited to */}
         <div className="pt-2 border-t border-slate-100">
-          <label className="block text-xs sm:text-sm font-bold text-slate-800 mb-1">
-            Invited to: <span className="text-slate-500 font-normal">(select one or more)</span>
+          <label className="block text-xs sm:text-sm font-semibold text-slate-800 mb-2">
+            Invited to
           </label>
-          <p className="text-xs text-slate-500 mb-2.5">
-            Tap to select the church programs this person was invited to attend:
-          </p>
 
-          <div className="grid grid-cols-1 xs:grid-cols-2 gap-2.5">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
             {CHURCH_PROGRAMS.map((prog) => {
               const isSelected = selectedPrograms.includes(prog);
               return (
@@ -389,17 +386,17 @@ export const AddPersonForm: React.FC<AddPersonFormProps> = ({
                   type="button"
                   key={prog}
                   onClick={() => handleToggleProgram(prog)}
-                  className={`flex items-center justify-between p-3 rounded-xl border text-left transition-all cursor-pointer ${
+                  className={`flex items-center justify-between p-3 rounded-xl border text-left transition-all cursor-pointer min-h-[44px] ${
                     isSelected
-                      ? 'bg-blue-50/90 border-[#1E5AA8] text-[#1E5AA8] shadow-xs'
-                      : 'bg-white border-slate-200 text-slate-700 hover:border-slate-300'
+                      ? 'bg-blue-50/80 border-[#0F2744] text-[#0F2744] shadow-2xs font-semibold'
+                      : 'bg-white border-slate-200 text-slate-700 hover:border-slate-300 font-medium'
                   }`}
                 >
-                  <span className="text-xs sm:text-sm font-bold whitespace-normal">{prog}</span>
+                  <span className="text-xs sm:text-sm whitespace-normal">{prog}</span>
                   <div
                     className={`w-5 h-5 rounded-md flex items-center justify-center border transition-all flex-shrink-0 ml-2 ${
                       isSelected
-                        ? 'bg-[#1E5AA8] border-[#15427D] text-white'
+                        ? 'bg-[#0F2744] border-[#0F2744] text-white'
                         : 'border-slate-300 bg-white'
                     }`}
                   >
@@ -415,21 +412,18 @@ export const AddPersonForm: React.FC<AddPersonFormProps> = ({
         <div className="pt-2 border-t border-slate-100">
           <div className="flex items-center justify-between flex-wrap gap-2">
             <div>
-              <label className="block text-xs sm:text-sm font-bold text-slate-800">
+              <label className="block text-xs sm:text-sm font-semibold text-slate-800">
                 New Convert?
               </label>
-              <p className="text-xs text-slate-500">
-                Did this soul pray to accept Jesus Christ as Lord and Saviour?
-              </p>
             </div>
 
             <div className="flex items-center bg-slate-100 p-1 rounded-xl border border-slate-200">
               <button
                 type="button"
                 onClick={() => setIsNewConvert(false)}
-                className={`px-4 py-1.5 rounded-lg text-xs sm:text-sm font-semibold transition-all cursor-pointer ${
+                className={`px-4 py-1.5 rounded-lg text-xs sm:text-sm font-semibold transition-all cursor-pointer min-h-[36px] ${
                   !isNewConvert
-                    ? 'bg-white text-slate-800 shadow-xs'
+                    ? 'bg-white text-slate-800 shadow-2xs'
                     : 'text-slate-500 hover:text-slate-800'
                 }`}
               >
@@ -438,9 +432,9 @@ export const AddPersonForm: React.FC<AddPersonFormProps> = ({
               <button
                 type="button"
                 onClick={() => setIsNewConvert(true)}
-                className={`flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-xs sm:text-sm font-bold transition-all cursor-pointer ${
+                className={`flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-xs sm:text-sm font-bold transition-all cursor-pointer min-h-[36px] ${
                   isNewConvert
-                    ? 'bg-[#E02020] text-white shadow-sm'
+                    ? 'bg-rose-600 text-white shadow-2xs'
                     : 'text-slate-500 hover:text-slate-800'
                 }`}
               >
@@ -452,23 +446,23 @@ export const AddPersonForm: React.FC<AddPersonFormProps> = ({
         </div>
 
         {/* Responded Well Box (Checkbox + notes textarea) */}
-        <div className="bg-orange-50/40 border border-orange-200 rounded-xl p-4 sm:p-5 space-y-3">
+        <div className="bg-slate-50/70 border border-slate-200 rounded-xl p-4 sm:p-5 space-y-3">
           <div className="flex items-center gap-3">
             <input
               id="respondedWell"
               type="checkbox"
               checked={respondedWell}
               onChange={(e) => setRespondedWell(e.target.checked)}
-              className="w-5 h-5 rounded text-[#F7931E] focus:ring-orange-500 border-slate-300 accent-[#F7931E] cursor-pointer"
+              className="w-5 h-5 rounded text-amber-600 focus:ring-amber-500 border-slate-300 accent-amber-600 cursor-pointer"
             />
-            <label htmlFor="respondedWell" className="text-xs sm:text-sm font-bold text-slate-900 flex items-center gap-1.5 cursor-pointer">
-              <HeartHandshake className="w-4 h-4 text-[#E07F0E]" />
-              <span>Responded well</span>
+            <label htmlFor="respondedWell" className="text-xs sm:text-sm font-semibold text-slate-900 flex items-center gap-1.5 cursor-pointer">
+              <HeartHandshake className="w-4 h-4 text-amber-600" />
+              <span>Responded well (warm & receptive to the gospel)</span>
             </label>
           </div>
 
           <div>
-            <label htmlFor="notes" className="block text-xs font-bold text-slate-700 mb-1">
+            <label htmlFor="notes" className="block text-xs font-semibold text-slate-700 mb-1">
               Follow-up Details & Notes:
             </label>
             <textarea
@@ -477,7 +471,7 @@ export const AddPersonForm: React.FC<AddPersonFormProps> = ({
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               placeholder="e.g. Prayer requests, residence area, spiritual questions, best time to call..."
-              className="w-full p-3 rounded-xl border border-slate-300 bg-white focus:border-[#1E5AA8] focus:ring-2 focus:ring-blue-500/20 text-xs sm:text-sm text-slate-900 placeholder:text-slate-400 outline-none transition-all resize-y"
+              className="w-full p-3 rounded-xl border border-slate-300 bg-white focus:border-[#0F2744] focus:ring-1 focus:ring-[#0F2744] text-xs sm:text-sm text-slate-900 placeholder:text-slate-400 outline-none transition-all resize-y"
             />
           </div>
         </div>
@@ -485,8 +479,8 @@ export const AddPersonForm: React.FC<AddPersonFormProps> = ({
         {/* Evangelist Name & Date (DD/MM/YYYY) */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-1">
           <div>
-            <label htmlFor="evangelistName" className="block text-xs sm:text-sm font-bold text-slate-800 mb-1.5">
-              Evangelist's Name <span className="text-[#E02020] font-black">*</span>
+            <label htmlFor="evangelistName" className="block text-xs sm:text-sm font-semibold text-slate-800 mb-1.5">
+              Evangelist's Name <span className="text-rose-600 font-bold">*</span>
             </label>
             <input
               id="evangelistName"
@@ -495,7 +489,7 @@ export const AddPersonForm: React.FC<AddPersonFormProps> = ({
               value={evangelistName}
               onChange={(e) => setEvangelistName(e.target.value)}
               placeholder="e.g. Brother Emmanuel"
-              className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 focus:border-[#1E5AA8] focus:ring-2 focus:ring-blue-500/20 text-sm text-slate-900 outline-none"
+              className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 focus:border-[#0F2744] focus:ring-1 focus:ring-[#0F2744] text-sm text-slate-900 outline-none min-h-[42px]"
             />
             <p className="text-[10px] text-slate-500 mt-1">
               Who recorded this person (saved on this phone).
@@ -503,7 +497,7 @@ export const AddPersonForm: React.FC<AddPersonFormProps> = ({
           </div>
 
           <div>
-            <label htmlFor="date" className="block text-xs sm:text-sm font-bold text-slate-800 mb-1.5">
+            <label htmlFor="date" className="block text-xs sm:text-sm font-semibold text-slate-800 mb-1.5">
               Date (DD/MM/YYYY) <span className="text-slate-400 font-normal">(auto-filled)</span>
             </label>
             <div className="relative">
@@ -517,7 +511,7 @@ export const AddPersonForm: React.FC<AddPersonFormProps> = ({
                 onChange={(e) => setDate(e.target.value)}
                 placeholder="DD/MM/YYYY"
                 pattern="\d{2}/\d{2}/\d{4}"
-                className="w-full pl-10 pr-3.5 py-2.5 rounded-xl border border-slate-300 focus:border-[#1E5AA8] focus:ring-2 focus:ring-blue-500/20 text-sm text-slate-900 outline-none font-mono"
+                className="w-full pl-10 pr-3.5 py-2.5 rounded-xl border border-slate-300 focus:border-[#0F2744] focus:ring-1 focus:ring-[#0F2744] text-sm text-slate-900 outline-none font-mono min-h-[42px]"
               />
             </div>
             <p className="text-[10px] text-slate-500 mt-1">
@@ -526,12 +520,12 @@ export const AddPersonForm: React.FC<AddPersonFormProps> = ({
           </div>
         </div>
 
-        {/* Submit Button in Flame Orange */}
+        {/* Submit Button in Confident Amber CTA */}
         <div className="pt-2">
           <button
             type="submit"
             disabled={isSubmitting}
-            className="w-full flex items-center justify-center gap-2 py-3.5 px-6 rounded-xl bg-[#F7931E] hover:bg-[#E07F0E] text-slate-950 font-extrabold text-sm sm:text-base shadow-md transition-all active:scale-98 cursor-pointer disabled:opacity-70 disabled:cursor-not-allowed border border-orange-300"
+            className="w-full flex items-center justify-center gap-2 py-3.5 px-6 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-sm sm:text-base shadow-xs transition-all active:scale-98 cursor-pointer disabled:opacity-70 disabled:cursor-not-allowed min-h-[46px]"
           >
             {isSubmitting ? (
               <span>Saving Soul Record...</span>

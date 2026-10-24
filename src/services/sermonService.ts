@@ -76,37 +76,90 @@ export function searchSermons(
   });
 }
 
+export interface TelegramMessageItem {
+  id: string;
+  title: string;
+  postNumber: number;
+  preview: string;
+}
+
+/**
+ * Array holding GLM sermons from the official Telegram channel (t.me/glmchannel).
+ * Easily expandable array for adding new messages.
+ */
+export const GLM_CHANNEL_MESSAGES: TelegramMessageItem[] = [
+  {
+    id: 'no-darkness-1737',
+    title: 'No Darkness at All',
+    postNumber: 1737,
+    preview: 'A powerful revelation on walking in holy light and total victory over darkness.'
+  },
+  {
+    id: 'born-again-1426',
+    title: 'Born Again',
+    postNumber: 1426,
+    preview: 'Understanding the true nature, divine life, and reality of being born of God.'
+  },
+  {
+    id: 'sin-and-gods-love-294',
+    title: "Sin and God's Love",
+    postNumber: 294,
+    preview: 'Experiencing the boundless mercy and transformative redemptive love of God.'
+  },
+  {
+    id: 'new-foundation-956',
+    title: 'New Foundation',
+    postNumber: 956,
+    preview: 'Laying an unshakeable spiritual foundation built upon Jesus Christ the Rock.'
+  },
+  {
+    id: 'rebirth-1184',
+    title: 'Rebirth',
+    postNumber: 1184,
+    preview: 'The profound transformation of heart and spirit by the Holy Ghost.'
+  },
+  {
+    id: 'knowing-god-1331',
+    title: 'Knowing God',
+    postNumber: 1331,
+    preview: 'An anointed message on knowing God intimately in fellowship, truth, and power.'
+  }
+];
+
+export function getTelegramPostUrl(postNumber: number): string {
+  return `https://t.me/glmchannel/${postNumber}`;
+}
+
+/**
+ * The exact WhatsApp message text requested:
+ * 🎧 Gospel Labour Ministry (GLM) Sermon
+ * 
+ * 🔗 Listen to the sermon on Telegram:
+ * https://t.me/glmchannel/<number>
+ * 
+ * May you be blessed and transformed as you listen!
+ */
+export function getTelegramWhatsAppMessage(postNumber: number): string {
+  return `🎧 Gospel Labour Ministry (GLM) Sermon\n\n🔗 Listen to the sermon on Telegram:\nhttps://t.me/glmchannel/${postNumber}\n\nMay you be blessed and transformed as you listen!`;
+}
+
+export function getTelegramWhatsAppShareUrl(postNumber: number, targetPhone?: string): string {
+  const text = getTelegramWhatsAppMessage(postNumber);
+  const encodedText = encodeURIComponent(text);
+  if (targetPhone) {
+    const formatted = formatWhatsAppNumber(targetPhone);
+    return `https://wa.me/${formatted}?text=${encodedText}`;
+  }
+  return `https://wa.me/?text=${encodedText}`;
+}
+
 /**
  * Builds the exact prefilled WhatsApp sermon message text for the Telegram Message Library
  */
 export function getSermonTelegramWhatsAppMessage(sermon: Sermon): string {
-  const ministerName = sermon.minister || sermon.speaker || 'Apostle Joseph Ibrahim';
-  const durationText = sermon.duration || sermon.durationFormatted || '1:29:59';
-  const postUrl = sermon.postUrl || sermon.telegramPostUrl || 'https://t.me/glmchannel/1331';
-
-  const parts: string[] = [
-    '🎧 Gospel Labour Ministry (GLM) Sermon',
-    '',
-    `📖 Title: ${sermon.title}`
-  ];
-
-  if (sermon.series) {
-    parts.push(`📚 Series: ${sermon.series}`);
-  }
-  parts.push(`👤 Minister: ${ministerName}`);
-  if (sermon.scripture) {
-    parts.push(`📜 Scripture: ${sermon.scripture}`);
-  }
-  parts.push(`⏱ Duration: ${durationText}`);
-  parts.push('');
-  parts.push(sermon.description);
-  parts.push('');
-  parts.push('🔗 Listen to the sermon on Telegram:');
-  parts.push(postUrl);
-  parts.push('');
-  parts.push('May you be blessed and transformed as you listen!');
-
-  return parts.join('\n');
+  const postMatch = sermon.postUrl?.match(/\/(\d+)\/?$/) || sermon.telegramPostUrl?.match(/\/(\d+)\/?$/);
+  const postNum = postMatch ? Number(postMatch[1]) : 1331;
+  return getTelegramWhatsAppMessage(postNum);
 }
 
 /**

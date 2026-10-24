@@ -45,7 +45,7 @@ test('getFollowUpMessage generates exact requested text dynamically', () => {
   const msg = getFollowUpMessage('Sister Sarah', 'Brother Emmanuel');
   assert.equal(
     msg,
-    "Hello Sister Sarah, good evening. I am Brother Emmanuel from Gospel Labour Ministry. It was nice meeting you today during evangelism. I am interested in following you up. I hope you don't mind if we keep in touch? God bless you."
+    'Hello Sister Sarah, This is Brother Emmanuel from Gospel Labour Ministry. We met during evangelism today and I was really blessed to meet you. I would love to follow you up and keep in touch with you. Hope you are doing great. God bless you!'
   );
 });
 

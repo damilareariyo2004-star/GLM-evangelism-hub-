@@ -49,15 +49,19 @@ export function handleFirestoreError(error: unknown, operationType: OperationTyp
   throw new Error(JSON.stringify(errInfo));
 }
 
-// Test initial connection as required by Firestore integration skill
+// Test initial connection with timeout so offline/restricted sandbox doesn't block or throw 10s error
 export async function testConnection(): Promise<boolean> {
   try {
-    await getDocFromServer(doc(db, 'test', 'connection'));
+    const timeout = new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new Error('connection_timeout')), 2000)
+    );
+    await Promise.race([
+      getDocFromServer(doc(db, 'test', 'connection')),
+      timeout
+    ]);
     return true;
-  } catch (error) {
-    if (error instanceof Error && error.message.includes('the client is offline')) {
-      console.warn('Firestore is running in offline mode. Local cache active.');
-    }
+  } catch {
+    // Client smoothly runs in offline-first mode with IndexedDB/cache persistence
     return false;
   }
 }

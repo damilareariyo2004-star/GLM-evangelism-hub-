@@ -34,9 +34,45 @@ test('getSermonWhatsAppShareUrl formats valid WhatsApp share url with verified T
   const url = getSermonWhatsAppShareUrl(sermon);
   assert.ok(url.startsWith('https://wa.me/?text='));
   assert.ok(url.includes(encodeURIComponent('Gospel Labour Ministry (GLM) Sermon')));
-  assert.ok(url.includes(encodeURIComponent('Knowing God')));
-  assert.ok(url.includes(encodeURIComponent('Apostle Joseph Ibrahim')));
   assert.ok(url.includes(encodeURIComponent('https://t.me/glmchannel/1331')));
+  assert.ok(url.includes(encodeURIComponent('May you be blessed and transformed as you listen!')));
+});
+
+test('GLM_CHANNEL_MESSAGES holds strictly 6 verified messages in requested order', async () => {
+  const { GLM_CHANNEL_MESSAGES, getTelegramWhatsAppMessage, getTelegramPostUrl } = await import('./sermonService');
+  assert.equal(GLM_CHANNEL_MESSAGES.length, 6);
+
+  assert.deepEqual(
+    GLM_CHANNEL_MESSAGES.map((m) => ({ title: m.title, postNumber: m.postNumber })),
+    [
+      { title: 'No Darkness at All', postNumber: 1737 },
+      { title: 'Born Again', postNumber: 1426 },
+      { title: "Sin and God's Love", postNumber: 294 },
+      { title: 'New Foundation', postNumber: 956 },
+      { title: 'Rebirth', postNumber: 1184 },
+      { title: 'Knowing God', postNumber: 1331 }
+    ]
+  );
+
+  const msgText = getTelegramWhatsAppMessage(1737);
+  assert.equal(
+    msgText,
+    '🎧 Gospel Labour Ministry (GLM) Sermon\n\n🔗 Listen to the sermon on Telegram:\nhttps://t.me/glmchannel/1737\n\nMay you be blessed and transformed as you listen!'
+  );
+  assert.equal(getTelegramPostUrl(1737), 'https://t.me/glmchannel/1737');
+});
+
+test('GLM_MESSAGES_LIST in SermonSharing contains strictly 6 verified messages in requested order', async () => {
+  const { GLM_MESSAGES_LIST } = await import('../components/SermonSharing');
+  assert.equal(GLM_MESSAGES_LIST.length, 6);
+  assert.deepEqual(GLM_MESSAGES_LIST, [
+    { title: 'No Darkness at All', number: 1737 },
+    { title: 'Born Again', number: 1426 },
+    { title: "Sin and God's Love", number: 294 },
+    { title: 'New Foundation', number: 956 },
+    { title: 'Rebirth', number: 1184 },
+    { title: 'Knowing God', number: 1331 }
+  ]);
 });
 
 test('shareAudioFileDirect returns unsupported when navigator.share is absent', async () => {

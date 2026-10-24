@@ -51,8 +51,8 @@ test('calculateDashboardStats computes correct totals and program breakdowns for
   assert.equal(stats.totalNewConverts, 2);
   assert.equal(stats.totalRespondedWell, 2);
   assert.equal(stats.totalFollowedUp, 1);
-  assert.equal(stats.programCounts['Wednesday Program / Joint Auxano'], 1);
-  assert.equal(stats.programCounts['Friday Program / Something New'], 1);
+  assert.equal(stats.programCounts['Wednesday Program/Joint Auxano'], 1);
+  assert.equal(stats.programCounts['Friday Program/Something New'], 1);
   assert.equal(stats.programCounts['School Auxano'], 2);
   assert.equal(stats.programCounts['Sunday Service'], 1);
 });

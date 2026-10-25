@@ -26,11 +26,12 @@ import {
   ChurchProgram,
   CHURCH_PROGRAMS,
   ProgramFilter,
-  FollowUpFilter
+  FollowUpFilter,
+  RecordSegment
 } from '../types';
 import { downloadRecordsCsv } from '../utils/csvExport';
 import { getTelLink, getWhatsAppLink, getDirectWhatsAppDmUrl } from '../utils/phoneUtils';
-import { formatDateDisplay } from '../utils/dateUtils';
+import { formatDateDisplay, compareDatesDesc } from '../utils/dateUtils';
 import { GLM_SERMONS } from '../services/sermonService';
 import { ExportReportModal } from './ExportReportModal';
 import { WhatsAppIcon } from './BrandIcons';
@@ -54,6 +55,9 @@ export const RecordsList: React.FC<RecordsListProps> = ({
   onNavigateToAdd,
   onDeleteRecord
 }) => {
+  // Segment state: Follow-up vs Established
+  const [segment, setSegment] = useState<RecordSegment>('follow_up');
+
   // Search & Filter State
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedProgram, setSelectedProgram] = useState<ProgramFilter>('all');
@@ -70,9 +74,13 @@ export const RecordsList: React.FC<RecordsListProps> = ({
   // Delete confirmation state
   const [pendingDeleteRecord, setPendingDeleteRecord] = useState<EvangelismRecord | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   // Manual WhatsApp Sermon File Sharing modal state (Action B)
   const [shareSermonRecord, setShareSermonRecord] = useState<EvangelismRecord | null>(null);
+
+  const followUpCount = useMemo(() => records.filter((r) => !r.isEstablished).length, [records]);
+  const establishedCount = useMemo(() => records.filter((r) => Boolean(r.isEstablished)).length, [records]);
 
   const toggleNoteExpand = (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
@@ -82,9 +90,13 @@ export const RecordsList: React.FC<RecordsListProps> = ({
   const handleConfirmDelete = async () => {
     if (!pendingDeleteRecord || !pendingDeleteRecord.id) return;
     setIsDeleting(true);
+    setDeleteError(null);
     try {
       await onDeleteRecord(pendingDeleteRecord.id);
       setPendingDeleteRecord(null);
+    } catch (err) {
+      console.error('Failed to delete record:', err);
+      setDeleteError('Failed to delete record. Please check connection and try again.');
     } finally {
       setIsDeleting(false);
     }
@@ -92,7 +104,8 @@ export const RecordsList: React.FC<RecordsListProps> = ({
 
   // Filtered Records (sorted newest first)
   const filteredRecords = useMemo(() => {
-    let result = [...records];
+    // Partition by segment: Established people leave the Follow-up list
+    let result = records.filter((r) => (segment === 'established' ? Boolean(r.isEstablished) : !r.isEstablished));
 
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase().trim();
@@ -122,8 +135,8 @@ export const RecordsList: React.FC<RecordsListProps> = ({
       result = result.filter((r) => r.respondedWell);
     }
 
-    return result.sort((a, b) => (b.date || '').localeCompare(a.date || ''));
-  }, [records, searchQuery, selectedProgram, followUpFilter, onlyNewConverts, onlyRespondedWell]);
+    return result.sort((a, b) => compareDatesDesc(a.date, b.date, a.createdAt, b.createdAt));
+  }, [records, segment, searchQuery, selectedProgram, followUpFilter, onlyNewConverts, onlyRespondedWell]);
 
   const activeFiltersCount =
     (selectedProgram !== 'all' ? 1 : 0) +
@@ -259,6 +272,68 @@ export const RecordsList: React.FC<RecordsListProps> = ({
           </button>
         </div>
       </div>
+
+      {/* Segmented Control: Follow-up (n) and Established (n) */}
+      <div className="flex bg-slate-200/80 p-1 rounded-2xl w-full sm:w-auto self-start shadow-2xs">
+        <button
+          type="button"
+          onClick={() => setSegment('follow_up')}
+          className={`flex-1 sm:flex-initial px-5 py-2 text-xs sm:text-sm font-bold rounded-xl transition-all cursor-pointer min-h-[44px] flex items-center justify-center gap-2 ${
+            segment === 'follow_up'
+              ? 'bg-white text-[#0F2744] shadow-xs'
+              : 'text-slate-600 hover:text-slate-900'
+          }`}
+        >
+          <span>Follow-up</span>
+          <span
+            className={`px-2 py-0.5 rounded-full text-[11px] font-bold ${
+              segment === 'follow_up'
+                ? 'bg-blue-100 text-[#0F2744]'
+                : 'bg-slate-300 text-slate-700'
+            }`}
+          >
+            {followUpCount}
+          </span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setSegment('established')}
+          className={`flex-1 sm:flex-initial px-5 py-2 text-xs sm:text-sm font-bold rounded-xl transition-all cursor-pointer min-h-[44px] flex items-center justify-center gap-2 ${
+            segment === 'established'
+              ? 'bg-white text-purple-900 shadow-xs'
+              : 'text-slate-600 hover:text-slate-900'
+          }`}
+        >
+          <span>Established</span>
+          <span
+            className={`px-2 py-0.5 rounded-full text-[11px] font-bold ${
+              segment === 'established'
+                ? 'bg-purple-100 text-purple-900'
+                : 'bg-slate-300 text-slate-700'
+            }`}
+          >
+            {establishedCount}
+          </span>
+        </button>
+      </div>
+
+      {/* Delete Error Alert */}
+      {deleteError && (
+        <div className="p-3.5 bg-rose-50 border border-rose-200 rounded-xl text-rose-800 text-xs flex items-center justify-between gap-3 animate-in fade-in">
+          <div className="flex items-center gap-2">
+            <AlertCircle className="w-4 h-4 flex-shrink-0 text-rose-600" />
+            <span className="font-medium">{deleteError}</span>
+          </div>
+          <button
+            type="button"
+            onClick={() => setDeleteError(null)}
+            className="text-rose-700 font-bold hover:underline text-[11px]"
+          >
+            Dismiss
+          </button>
+        </div>
+      )}
 
       {/* Search and Filters Card */}
       <div className="bg-white rounded-2xl p-4 border border-slate-200/90 shadow-2xs space-y-3">
@@ -434,6 +509,11 @@ export const RecordsList: React.FC<RecordsListProps> = ({
                       >
                         {rec.followedUp ? 'Followed Up' : 'Pending'}
                       </span>
+                      {rec.isEstablished && (
+                        <span className="bg-purple-50 border border-purple-200 text-purple-800 text-[11px] font-bold px-2 py-0.2 rounded">
+                          Established
+                        </span>
+                      )}
                     </div>
 
                     <p className="text-xs font-semibold text-slate-700 mt-1 font-mono">

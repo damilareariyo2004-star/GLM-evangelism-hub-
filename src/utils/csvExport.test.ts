@@ -107,3 +107,32 @@ test('filterRecordsByDateRange correctly filters records within preset or custom
   assert.equal(custom[0].id, 'r2');
 });
 
+test('generateRecordsCsv includes Established column and optional Worker column', () => {
+  const records: EvangelismRecord[] = [
+    {
+      id: 'rec-test-1',
+      workerUid: 'uid_grace',
+      workerEmail: 'grace@glm.org',
+      fullName: 'Brother Barnabas',
+      phone: '08012345678',
+      programs: ['Sunday Service'],
+      isNewConvert: false,
+      respondedWell: true,
+      evangelistName: 'Sister Grace',
+      date: '2026-10-22',
+      followedUp: true,
+      isEstablished: true
+    }
+  ];
+
+  // Standard worker export: has Established column
+  const standardCsv = generateRecordsCsv(records);
+  assert.ok(standardCsv.includes('"Established"'));
+  assert.ok(standardCsv.includes('"Yes"'));
+
+  // Admin export: has Worker column
+  const adminCsv = generateRecordsCsv(records, { includeWorker: true });
+  assert.ok(adminCsv.startsWith('"Worker","Full Name"'));
+  assert.ok(adminCsv.includes('"grace@glm.org"'));
+});
+

@@ -15,6 +15,33 @@ service cloud.firestore {
       return request.auth != null;
     }
 
+    // =========================================================================
+    // APPROVED ADMIN GOOGLE EMAILS (MAXIMUM 5 ACCOUNTS)
+    // LOCATION: lines 20-33 of firestore.rules
+    // Only verified Google accounts listed below are granted Admin rights.
+    // Slots 2 to 5 are empty and reserved for future admin emails.
+    // =========================================================================
+    function approvedAdminEmails() {
+      return [
+        'damilareariyo2004@gmail.com'
+        // Slot 2: (empty - add 2nd admin email here in lowercase)
+        // Slot 3: (empty - add 3rd admin email here in lowercase)
+        // Slot 4: (empty - add 4th admin email here in lowercase)
+        // Slot 5: (empty - add 5th admin email here in lowercase)
+      ];
+    }
+
+    function isAdmin() {
+      return isSignedIn()
+        && request.auth.token.email_verified == true
+        && request.auth.token.email != null
+        && request.auth.token.email.lower() in approvedAdminEmails();
+    }
+
+    function isRemovedWorker() {
+      return isSignedIn() && exists(/databases/$(database)/documents/removedWorkers/$(request.auth.uid));
+    }
+
     function isValidId(id) {
       return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
     }
@@ -29,7 +56,6 @@ service cloud.firestore {
 
     function isValidRecord(data) {
       return data.workerUid is string && data.workerUid.size() >= 1 && data.workerUid.size() <= 128
-        && data.workerUid == request.auth.uid
         && (!('workerEmail' in data) || (data.workerEmail is string && data.workerEmail.size() <= 150))
         && data.fullName is string && data.fullName.size() >= 1 && data.fullName.size() <= 150
         && data.phone is string && data.phone.size() >= 3 && data.phone.size() <= 50
@@ -39,25 +65,38 @@ service cloud.firestore {
         && data.evangelistName is string && data.evangelistName.size() >= 1 && data.evangelistName.size() <= 150
         && data.date is string && data.date.size() <= 25
         && data.followedUp is bool
+        && (!('isEstablished' in data) || data.isEstablished is bool)
+        && (!('establishedAt' in data) || (data.establishedAt is string && data.establishedAt.size() <= 50))
         && (!('notes' in data) || (data.notes is string && data.notes.size() <= 2500))
         && (!('followUpNotes' in data) || (data.followUpNotes is string && data.followUpNotes.size() <= 3000));
     }
 
     match /records/{recordId} {
-      // Workers can only read and list records that belong to them
-      allow get: if isSignedIn() && existing().workerUid == request.auth.uid;
-      allow list: if isSignedIn() && resource.data.workerUid == request.auth.uid;
+      // Workers can read/list records that belong to them if not removed; Admins can read/list all records
+      allow get: if isSignedIn() && (isAdmin() || (!isRemovedWorker() && existing().workerUid == request.auth.uid));
+      allow list: if isSignedIn() && (isAdmin() || (!isRemovedWorker() && resource.data.workerUid == request.auth.uid));
 
-      // Workers can only create records under their own authenticated UID
-      allow create: if isSignedIn() && isValidId(recordId) && isValidRecord(incoming()) && incoming().workerUid == request.auth.uid;
+      // Workers can only create records under their own authenticated UID if not removed
+      allow create: if isSignedIn() && !isRemovedWorker() && isValidId(recordId) && isValidRecord(incoming())
+        && incoming().workerUid == request.auth.uid;
 
-      // Workers can only update their own records and cannot transfer ownership to another UID
+      // Workers can update their own records (workerUid must match existing) if not removed.
+      // Admins can update any record as long as workerUid stays unchanged.
       allow update: if isSignedIn() && isValidId(recordId) && isValidRecord(incoming())
-        && existing().workerUid == request.auth.uid
-        && incoming().workerUid == existing().workerUid;
+        && incoming().workerUid == existing().workerUid
+        && (isAdmin() || (!isRemovedWorker() && existing().workerUid == request.auth.uid));
 
-      // Workers can only delete their own records
-      allow delete: if isSignedIn() && isValidId(recordId) && existing().workerUid == request.auth.uid;
+      // Workers can delete their own records if not removed; Admins can delete any record.
+      allow delete: if isSignedIn() && isValidId(recordId)
+        && (isAdmin() || (!isRemovedWorker() && existing().workerUid == request.auth.uid));
+    }
+
+    match /removedWorkers/{workerUid} {
+      // Admins can read, list, create, update, delete removedWorkers documents.
+      // A signed-in worker can get only their own removedWorkers document.
+      allow get: if isSignedIn() && (isAdmin() || request.auth.uid == workerUid);
+      allow list: if isAdmin();
+      allow create, update, delete: if isAdmin() && isValidId(workerUid);
     }
   }
 }

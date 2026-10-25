@@ -33,6 +33,8 @@ import { getProgramBadgeStyle } from '../utils/programUtils';
 
 interface RecordDetailModalProps {
   record: EvangelismRecord | null;
+  currentUser?: { uid?: string } | null;
+  isAdmin?: boolean;
   onClose: () => void;
   onUpdateRecord: (id: string, updates: Partial<Omit<EvangelismRecord, 'id'>>) => Promise<void>;
   onDeleteRecord: (id: string) => Promise<void>;
@@ -40,16 +42,22 @@ interface RecordDetailModalProps {
 
 export const RecordDetailModal: React.FC<RecordDetailModalProps> = ({
   record,
+  currentUser,
+  isAdmin = false,
   onClose,
   onUpdateRecord,
   onDeleteRecord
 }) => {
   if (!record || !record.id) return null;
 
+  const canModify = Boolean(isAdmin || (currentUser && record.workerUid === currentUser.uid));
+
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showShareSermonModal, setShowShareSermonModal] = useState(false);
+  const [showEstablishedConfirm, setShowEstablishedConfirm] = useState(false);
+  const [actionError, setActionError] = useState<string | null>(null);
 
   // Edit state
   const [fullName, setFullName] = useState(record.fullName);
@@ -59,6 +67,7 @@ export const RecordDetailModal: React.FC<RecordDetailModalProps> = ({
   const [respondedWell, setRespondedWell] = useState(record.respondedWell);
   const [notes, setNotes] = useState(record.notes || '');
   const [followedUp, setFollowedUp] = useState(record.followedUp);
+  const [isEstablished, setIsEstablished] = useState(Boolean(record.isEstablished));
   const [followUpNotes, setFollowUpNotes] = useState(record.followUpNotes || '');
   const [newWorkerNote, setNewWorkerNote] = useState('');
 
@@ -70,9 +79,39 @@ export const RecordDetailModal: React.FC<RecordDetailModalProps> = ({
     }
   };
 
+  const handleToggleEstablished = async (establish: boolean) => {
+    setActionError(null);
+    setIsSaving(true);
+    const today = getTodayFormatted();
+    const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    const appendText = establish
+      ? `• [${today} ${time}] Established in church fellowship`
+      : `• [${today} ${time}] Moved back to follow-up`;
+    const updatedNotes = followUpNotes
+      ? `${followUpNotes}\n${appendText}`
+      : appendText;
+
+    try {
+      await onUpdateRecord(record.id!, {
+        isEstablished: establish,
+        establishedAt: establish ? today : '',
+        followUpNotes: updatedNotes
+      });
+      setIsEstablished(establish);
+      setFollowUpNotes(updatedNotes);
+      setShowEstablishedConfirm(false);
+    } catch (err) {
+      console.error('Failed to update established status:', err);
+      setActionError('Failed to update established status. Please check connection and try again.');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   const handleQuickToggleFollowUp = async () => {
+    setActionError(null);
+    setIsSaving(true);
     const nextState = !followedUp;
-    setFollowedUp(nextState);
     const today = getTodayFormatted();
     const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     const appendText = `• [${today} ${time}] Status marked as: ${nextState ? 'Followed up' : 'Pending'}`;
@@ -80,17 +119,26 @@ export const RecordDetailModal: React.FC<RecordDetailModalProps> = ({
       ? `${followUpNotes}\n${appendText}`
       : appendText;
 
-    setFollowUpNotes(updatedNotes);
-    await onUpdateRecord(record.id!, {
-      followedUp: nextState,
-      followUpNotes: updatedNotes
-    });
+    try {
+      await onUpdateRecord(record.id!, {
+        followedUp: nextState,
+        followUpNotes: updatedNotes
+      });
+      setFollowedUp(nextState);
+      setFollowUpNotes(updatedNotes);
+    } catch (err) {
+      console.error('Failed to toggle follow up:', err);
+      setActionError('Failed to update follow-up status. Please check connection and try again.');
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const handleAddFollowUpNote = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newWorkerNote.trim()) return;
 
+    setActionError(null);
     setIsSaving(true);
     const today = getTodayFormatted();
     const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
@@ -98,15 +146,17 @@ export const RecordDetailModal: React.FC<RecordDetailModalProps> = ({
       ? `${followUpNotes}\n• [${today} ${time}] ${newWorkerNote.trim()}`
       : `• [${today} ${time}] ${newWorkerNote.trim()}`;
 
-    setFollowUpNotes(appendedNotes);
-    setNewWorkerNote('');
-
     try {
       await onUpdateRecord(record.id!, {
         followUpNotes: appendedNotes,
         followedUp: true
       });
+      setFollowUpNotes(appendedNotes);
+      setNewWorkerNote('');
       setFollowedUp(true);
+    } catch (err) {
+      console.error('Failed to add follow up note:', err);
+      setActionError('Failed to save follow-up note. Please check connection.');
     } finally {
       setIsSaving(false);
     }
@@ -114,6 +164,7 @@ export const RecordDetailModal: React.FC<RecordDetailModalProps> = ({
 
   const handleSaveFullEdit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setActionError(null);
     setIsSaving(true);
     try {
       await onUpdateRecord(record.id!, {
@@ -124,19 +175,27 @@ export const RecordDetailModal: React.FC<RecordDetailModalProps> = ({
         respondedWell,
         notes: notes.trim(),
         followedUp,
+        isEstablished,
         followUpNotes: followUpNotes.trim()
       });
       setIsEditing(false);
+    } catch (err) {
+      console.error('Failed to save full edit:', err);
+      setActionError('Failed to save edits to record. Please check connection and try again.');
     } finally {
       setIsSaving(false);
     }
   };
 
   const handleDelete = async () => {
+    setActionError(null);
     setIsSaving(true);
     try {
       await onDeleteRecord(record.id!);
       onClose();
+    } catch (err) {
+      console.error('Failed to delete record:', err);
+      setActionError('Failed to delete record. Please check connection and try again.');
     } finally {
       setIsSaving(false);
     }
@@ -179,6 +238,12 @@ export const RecordDetailModal: React.FC<RecordDetailModalProps> = ({
                   <span>New Convert</span>
                 </span>
               )}
+              {isEstablished && (
+                <span className="bg-purple-50 border border-purple-200 text-purple-800 text-xs font-bold px-2.5 py-0.5 rounded flex items-center gap-1">
+                  <Church className="w-3 h-3 text-purple-700" />
+                  <span>Established Believer</span>
+                </span>
+              )}
             </div>
             {/* Recorded by on its own line */}
             <p className="text-xs text-slate-600 mt-1 font-medium">
@@ -190,7 +255,7 @@ export const RecordDetailModal: React.FC<RecordDetailModalProps> = ({
           </div>
 
           <div className="flex items-center gap-1">
-            {!isEditing && (
+            {!isEditing && canModify && (
               <button
                 onClick={() => setIsEditing(true)}
                 className="p-2 text-slate-500 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-colors cursor-pointer min-h-[40px] min-w-[40px] flex items-center justify-center"
@@ -208,6 +273,23 @@ export const RecordDetailModal: React.FC<RecordDetailModalProps> = ({
             </button>
           </div>
         </div>
+
+        {/* Action Error Banner */}
+        {actionError && (
+          <div className="p-3.5 bg-rose-50 border border-rose-200 rounded-xl text-rose-800 text-xs flex items-center justify-between gap-3 animate-in fade-in">
+            <div className="flex items-center gap-2">
+              <AlertCircle className="w-4 h-4 flex-shrink-0 text-rose-600" />
+              <span className="font-medium leading-snug">{actionError}</span>
+            </div>
+            <button
+              type="button"
+              onClick={() => setActionError(null)}
+              className="text-rose-700 font-bold hover:underline text-[11px] flex-shrink-0"
+            >
+              Dismiss
+            </button>
+          </div>
+        )}
 
         {/* Delete Confirmation Alert */}
         {showDeleteConfirm ? (
@@ -392,20 +474,87 @@ export const RecordDetailModal: React.FC<RecordDetailModalProps> = ({
                 <span className="font-bold text-slate-900 font-mono">{phone}</span>
               </div>
 
-              <div className="flex justify-between items-center py-1 border-b border-slate-200/80">
-                <span className="text-slate-500 font-medium">Follow-Up Status:</span>
-                <button
-                  onClick={handleQuickToggleFollowUp}
-                  className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
-                    followedUp
-                      ? 'bg-emerald-50 text-emerald-800 border border-emerald-300 hover:bg-emerald-100'
-                      : 'bg-amber-50 text-amber-800 border border-amber-300 hover:bg-amber-100'
-                  }`}
-                  title="Click to toggle follow-up status"
-                >
-                  <CheckCircle2 className="w-3.5 h-3.5" />
-                  <span>{followedUp ? 'Followed Up' : 'Mark as Followed Up'}</span>
-                </button>
+              <div className="py-2 border-b border-slate-200/80 space-y-2">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <span className="text-slate-500 font-medium">Outreach Status:</span>
+
+                  <div className="flex items-center gap-2">
+                    {/* Follow-Up Status Button */}
+                    <button
+                      onClick={handleQuickToggleFollowUp}
+                      disabled={isSaving || !canModify}
+                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer min-h-[38px] disabled:opacity-50 ${
+                        followedUp
+                          ? 'bg-emerald-50 text-emerald-800 border border-emerald-300 hover:bg-emerald-100'
+                          : 'bg-amber-50 text-amber-800 border border-amber-300 hover:bg-amber-100'
+                      }`}
+                      title={canModify ? 'Click to toggle follow-up status' : 'Only owning worker or admin can change status'}
+                    >
+                      <CheckCircle2 className="w-3.5 h-3.5" />
+                      <span>{followedUp ? 'Followed Up' : 'Mark as Followed Up'}</span>
+                    </button>
+
+                    {/* Established Button */}
+                    {!isEstablished ? (
+                      <button
+                        type="button"
+                        onClick={() => setShowEstablishedConfirm(true)}
+                        disabled={isSaving || !canModify}
+                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer min-h-[38px] bg-blue-50 text-[#0F2744] border border-blue-300 hover:bg-blue-100 disabled:opacity-50"
+                        title={canModify ? 'Mark contact as established church member' : 'Only owning worker or admin can establish record'}
+                      >
+                        <Church className="w-3.5 h-3.5 text-[#0F2744]" />
+                        <span>Established</span>
+                      </button>
+                    ) : (
+                      <div className="flex items-center gap-2">
+                        <span className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-bold bg-purple-50 text-purple-800 border border-purple-300 min-h-[38px]">
+                          <Church className="w-3.5 h-3.5 text-purple-700" />
+                          <span>Established</span>
+                        </span>
+                        {canModify && (
+                          <button
+                            type="button"
+                            onClick={() => handleToggleEstablished(false)}
+                            disabled={isSaving}
+                            className="text-[11px] font-semibold text-slate-500 hover:text-slate-800 underline cursor-pointer px-1 py-1 min-h-[38px] flex items-center"
+                          >
+                            Move back to follow-up
+                          </button>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Inline Confirmation when establishing */}
+                {showEstablishedConfirm && (
+                  <div className="p-3 bg-blue-50/90 border border-blue-200 rounded-xl space-y-2 text-xs text-slate-800 animate-in fade-in">
+                    <p className="font-semibold text-[#0F2744]">
+                      Mark <span className="font-bold">{fullName}</span> as an established believer in church fellowship?
+                    </p>
+                    <p className="text-[11px] text-slate-600">
+                      Established souls leave pending follow-up lists but remain in total church records.
+                    </p>
+                    <div className="flex items-center gap-2 pt-1">
+                      <button
+                        type="button"
+                        onClick={() => handleToggleEstablished(true)}
+                        disabled={isSaving}
+                        className="px-3 py-1.5 bg-[#0F2744] hover:bg-blue-900 text-white font-bold text-xs rounded-lg shadow-xs cursor-pointer min-h-[34px]"
+                      >
+                        {isSaving ? 'Saving...' : 'Yes, Confirm Established'}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setShowEstablishedConfirm(false)}
+                        className="px-3 py-1.5 bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 font-semibold text-xs rounded-lg cursor-pointer min-h-[34px]"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
 
               <div className="flex justify-between items-center py-1 border-b border-slate-200/80">

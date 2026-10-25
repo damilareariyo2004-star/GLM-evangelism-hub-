@@ -1,5 +1,6 @@
 import { EvangelismRecord } from '../types';
-import { formatDateDisplay } from './dateUtils';
+import { formatDateDisplay, normalizeDateToYmd } from './dateUtils';
+export { normalizeDateToYmd };
 
 /**
  * Escapes a field for CSV according to RFC 4180
@@ -15,11 +16,16 @@ export function escapeCsvField(value: unknown): string {
   return `"${str}"`;
 }
 
+export interface CsvExportOptions {
+  includeWorker?: boolean;
+}
+
 /**
  * Generates CSV content from an array of EvangelismRecord
  */
-export function generateRecordsCsv(records: EvangelismRecord[]): string {
+export function generateRecordsCsv(records: EvangelismRecord[], options: CsvExportOptions = {}): string {
   const headers = [
+    ...(options.includeWorker ? ['Worker'] : []),
     'Full Name',
     'Phone / Contact',
     'Invited Programs',
@@ -29,6 +35,7 @@ export function generateRecordsCsv(records: EvangelismRecord[]): string {
     'Evangelist',
     'Date Recorded (DD/MM/YYYY)',
     'Followed Up',
+    'Established',
     'Follow-up Notes'
   ];
 
@@ -36,6 +43,7 @@ export function generateRecordsCsv(records: EvangelismRecord[]): string {
 
   const dataRows = records.map((rec) => {
     const row = [
+      ...(options.includeWorker ? [rec.workerEmail || rec.evangelistName || rec.workerUid] : []),
       rec.fullName,
       rec.phone,
       Array.isArray(rec.programs) ? rec.programs.join('; ') : '',
@@ -45,45 +53,13 @@ export function generateRecordsCsv(records: EvangelismRecord[]): string {
       rec.evangelistName,
       formatDateDisplay(rec.date),
       rec.followedUp ? 'Yes' : 'No',
+      rec.isEstablished ? 'Yes' : 'No',
       rec.followUpNotes || ''
     ];
     return row.map(escapeCsvField).join(',');
   });
 
   return [headerRow, ...dataRows].join('\r\n');
-}
-
-/**
- * Normalizes any supported date string (DD/MM/YYYY, YYYY-MM-DD, ISO) into YYYY-MM-DD for reliable comparison
- */
-export function normalizeDateToYmd(dateStr?: string | null): string {
-  if (!dateStr || typeof dateStr !== 'string') return '';
-  const trimmed = dateStr.trim();
-  if (!trimmed) return '';
-
-  // Check DD/MM/YYYY
-  const ddmmyyyy = trimmed.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
-  if (ddmmyyyy) {
-    const [, day, month, year] = ddmmyyyy;
-    return `${year}-${month}-${day}`;
-  }
-
-  // Check YYYY-MM-DD
-  const ymdMatch = trimmed.match(/^(\d{4})-(\d{2})-(\d{2})/);
-  if (ymdMatch) {
-    return ymdMatch[0];
-  }
-
-  // Parse as Date object
-  const parsed = new Date(trimmed);
-  if (!isNaN(parsed.getTime())) {
-    const y = parsed.getFullYear();
-    const m = String(parsed.getMonth() + 1).padStart(2, '0');
-    const d = String(parsed.getDate()).padStart(2, '0');
-    return `${y}-${m}-${d}`;
-  }
-
-  return '';
 }
 
 /**
@@ -177,8 +153,12 @@ export function filterRecordsByDateRange(
 /**
  * Initiates browser download of CSV file
  */
-export function downloadRecordsCsv(records: EvangelismRecord[], filename = 'glm-evangelism-records.csv'): void {
-  const csvContent = generateRecordsCsv(records);
+export function downloadRecordsCsv(
+  records: EvangelismRecord[],
+  filename = 'glm-evangelism-records.csv',
+  options: CsvExportOptions = {}
+): void {
+  const csvContent = generateRecordsCsv(records, options);
   const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
   const url = URL.createObjectURL(blob);
   const link = document.createElement('a');

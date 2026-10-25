@@ -24,6 +24,8 @@ export interface EvangelismRecord {
   evangelistName: string;
   date: string; // DD/MM/YYYY or YYYY-MM-DD
   followedUp: boolean;
+  isEstablished?: boolean;
+  establishedAt?: string;
   followUpNotes?: string;
   createdAt?: string; // ISO string or timestamp
   updatedAt?: string;
@@ -33,6 +35,7 @@ export type ProgramFilter = 'all' | ChurchProgram;
 export type FollowUpFilter = 'all' | 'followed_up' | 'not_followed_up';
 export type ConvertFilter = 'all' | 'new_converts';
 export type RespondedFilter = 'all' | 'responded_well';
+export type RecordSegment = 'follow_up' | 'established';
 
 export interface FilterState {
   searchQuery: string;
@@ -48,7 +51,26 @@ export interface DashboardStats {
   totalNewConverts: number;
   totalRespondedWell: number;
   totalFollowedUp: number;
+  totalEstablished: number;
+  pendingFollowUp: number;
   programCounts: Record<ChurchProgram, number>;
+}
+
+export type AdminTab = 'overview' | 'workers' | 'all_records';
+
+export interface WorkerSummary {
+  workerUid: string;
+  workerEmail: string;
+  workerName: string;
+  totalRecorded: number;
+  recordedThisWeek: number;
+  newConverts: number;
+  followedUpCount: number;
+  followedUpPercent: number;
+  establishedCount: number;
+  lastRecordedDate: string;
+  lastRecordedYmd: string;
+  isActive: boolean;
 }
 
 export type DateRangePreset = 'all' | 'this_week' | 'last_7_days' | 'this_month' | 'custom';
@@ -57,6 +79,14 @@ export interface DateRangeFilter {
   preset: DateRangePreset;
   startDate?: string; // YYYY-MM-DD
   endDate?: string;   // YYYY-MM-DD
+}
+
+export interface RemovedWorker {
+  workerUid: string;
+  workerEmail?: string;
+  workerName?: string;
+  removedAt: string; // ISO string
+  removedBy?: string;
 }
 
 export interface Sermon {

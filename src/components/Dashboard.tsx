@@ -107,8 +107,8 @@ export const Dashboard: React.FC<DashboardProps> = ({
         </div>
       </div>
 
-      {/* Primary Metrics Grid (4 Clean SaaS Cards) */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+      {/* Primary Metrics Grid (5 Clean SaaS Cards) */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
         {/* Total People Recorded */}
         <div className="bg-white rounded-xl p-4 sm:p-5 border border-slate-200/90 shadow-2xs hover:border-slate-300 transition-colors">
           <div className="flex items-center justify-between">
@@ -122,6 +122,23 @@ export const Dashboard: React.FC<DashboardProps> = ({
           <div className="mt-2.5">
             <span className="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900">
               {stats.totalRecords}
+            </span>
+          </div>
+        </div>
+
+        {/* Established Believers */}
+        <div className="bg-white rounded-xl p-4 sm:p-5 border border-slate-200/90 shadow-2xs hover:border-slate-300 transition-colors">
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
+              Established
+            </span>
+            <div className="w-7 h-7 rounded-lg bg-indigo-50 text-indigo-700 flex items-center justify-center">
+              <Church className="w-4 h-4" />
+            </div>
+          </div>
+          <div className="mt-2.5">
+            <span className="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900">
+              {stats.totalEstablished}
             </span>
           </div>
         </div>
@@ -161,7 +178,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
         </div>
 
         {/* Follow-Up Completed */}
-        <div className="bg-white rounded-xl p-4 sm:p-5 border border-slate-200/90 shadow-2xs hover:border-slate-300 transition-colors">
+        <div className="bg-white rounded-xl p-4 sm:p-5 border border-slate-200/90 shadow-2xs hover:border-slate-300 transition-colors col-span-2 sm:col-span-1">
           <div className="flex items-center justify-between">
             <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
               Follow-Up Completed
@@ -317,15 +334,22 @@ export const Dashboard: React.FC<DashboardProps> = ({
                       </div>
 
                       <div className="flex items-center gap-1.5 flex-shrink-0">
-                        <span
-                          className={`text-[11px] font-medium px-2 py-0.5 rounded ${
-                            rec.followedUp
-                              ? 'bg-emerald-50 text-emerald-800 border border-emerald-200'
-                              : 'bg-slate-100 text-slate-600 border border-slate-200'
-                          }`}
-                        >
-                          {rec.followedUp ? 'Followed Up' : 'Pending'}
-                        </span>
+                        {rec.isEstablished ? (
+                          <span className="text-[11px] font-semibold px-2 py-0.5 rounded bg-indigo-50 text-indigo-800 border border-indigo-200 flex items-center gap-1">
+                            <Church className="w-3 h-3 text-indigo-700" />
+                            <span>Established</span>
+                          </span>
+                        ) : (
+                          <span
+                            className={`text-[11px] font-medium px-2 py-0.5 rounded ${
+                              rec.followedUp
+                                ? 'bg-emerald-50 text-emerald-800 border border-emerald-200'
+                                : 'bg-slate-100 text-slate-600 border border-slate-200'
+                            }`}
+                          >
+                            {rec.followedUp ? 'Followed Up' : 'Pending'}
+                          </span>
+                        )}
                       </div>
                     </div>
 

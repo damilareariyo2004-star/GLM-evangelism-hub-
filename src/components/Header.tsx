@@ -6,12 +6,16 @@ interface HeaderProps {
   currentUser: User | null;
   onOpenAuth: () => void;
   recordsCount: number;
+  isAdminMode?: boolean;
+  onExitAdmin?: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
   currentUser,
   onOpenAuth,
-  recordsCount
+  recordsCount,
+  isAdminMode = false,
+  onExitAdmin
 }) => {
   return (
     <header className="bg-[#0B1E38] text-white border-b border-slate-800/80 sticky top-0 z-30 shadow-xs">
@@ -32,9 +36,16 @@ export const Header: React.FC<HeaderProps> = ({
             </div>
 
             <div className="min-w-0">
-              <h1 className="text-base sm:text-xl font-bold tracking-tight text-white leading-tight truncate">
-                GLM Evangelism Hub
-              </h1>
+              <div className="flex items-center gap-2">
+                <h1 className="text-base sm:text-xl font-bold tracking-tight text-white leading-tight truncate">
+                  GLM Evangelism Hub
+                </h1>
+                {isAdminMode && (
+                  <span className="bg-rose-500 text-white text-[10px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider">
+                    Admin
+                  </span>
+                )}
+              </div>
               <p className="text-[11px] sm:text-xs font-medium tracking-wider text-slate-300 uppercase truncate">
                 Gospel Labor Ministry
               </p>

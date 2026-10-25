@@ -60,6 +60,14 @@
           "type": "boolean",
           "description": "Whether a church worker has completed initial follow-up"
         },
+        "isEstablished": {
+          "type": "boolean",
+          "description": "Whether the contact has become an established believer in church fellowship"
+        },
+        "establishedAt": {
+          "type": "string",
+          "description": "Date or timestamp when the record was marked as established"
+        },
         "followUpNotes": {
           "type": "string",
           "description": "Follow-up history, notes, or worker feedback",
@@ -87,12 +95,47 @@
         "date",
         "followedUp"
       ]
+    },
+    "RemovedWorker": {
+      "title": "RemovedWorker",
+      "description": "Record of a church worker whose access to outreach records has been revoked by an administrator",
+      "type": "object",
+      "properties": {
+        "workerUid": {
+          "type": "string",
+          "description": "Firebase Auth UID of the removed worker"
+        },
+        "workerEmail": {
+          "type": "string",
+          "description": "Email address of the removed worker"
+        },
+        "workerName": {
+          "type": "string",
+          "description": "Display name of the removed worker"
+        },
+        "removedAt": {
+          "type": "string",
+          "description": "ISO timestamp when access was revoked"
+        },
+        "removedBy": {
+          "type": "string",
+          "description": "Email or UID of administrator who revoked access"
+        }
+      },
+      "required": [
+        "workerUid",
+        "removedAt"
+      ]
     }
   },
   "firestore": {
     "/records/{recordId}": {
       "schema": "EvangelismRecord",
       "description": "Collection of outreach contacts recorded and owned by evangelism workers"
+    },
+    "/removedWorkers/{workerUid}": {
+      "schema": "RemovedWorker",
+      "description": "Collection of revoked worker access documents managed by administrators"
     }
   }
 }

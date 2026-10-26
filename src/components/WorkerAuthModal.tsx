@@ -266,7 +266,7 @@ export const WorkerAuthModal: React.FC<WorkerAuthModalProps> = ({
           <div className="inline-block p-1 rounded-full bg-white shadow-md border-2 border-[#E02020] mx-auto">
             <img
               src="/assets/aistudio/IMG-20261015-WA0010_bc047986.jpg"
-              alt="Gospel Labor Ministry"
+              alt="Gospel Labour Ministry"
               className="w-16 h-16 rounded-full object-contain"
             />
           </div>
@@ -279,7 +279,7 @@ export const WorkerAuthModal: React.FC<WorkerAuthModalProps> = ({
                 : 'Church Worker Sign In'}
             </h3>
             <p className="text-xs font-bold text-[#E02020] uppercase tracking-wider mt-0.5">
-              Gospel Labor Ministry
+              Gospel Labour Ministry
             </p>
           </div>
           <p className="text-xs sm:text-sm text-slate-600 leading-relaxed max-w-xs mx-auto">
@@ -585,7 +585,7 @@ export const WorkerAuthModal: React.FC<WorkerAuthModalProps> = ({
                     required
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    placeholder="worker@gospellabor.org"
+                    placeholder="worker@gospellabour.org"
                     className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-300 focus:border-[#1E5AA8] focus:ring-2 focus:ring-blue-500/20 text-xs sm:text-sm outline-none"
                   />
                 </div>

@@ -8,7 +8,7 @@ test('calculateDashboardStats computes correct totals and program breakdowns for
     {
       id: '1',
       workerUid: 'worker_uid_abc',
-      workerEmail: 'worker1@gospellabor.org',
+      workerEmail: 'worker1@gospellabour.org',
       fullName: 'John Doe',
       phone: '1234567890',
       programs: ['Wednesday Program / Joint Auxano', 'School Auxano'],
@@ -21,7 +21,7 @@ test('calculateDashboardStats computes correct totals and program breakdowns for
     {
       id: '2',
       workerUid: 'worker_uid_abc',
-      workerEmail: 'worker1@gospellabor.org',
+      workerEmail: 'worker1@gospellabour.org',
       fullName: 'Jane Smith',
       phone: '0987654321',
       programs: ['School Auxano', 'Sunday Service'],
@@ -34,7 +34,7 @@ test('calculateDashboardStats computes correct totals and program breakdowns for
     {
       id: '3',
       workerUid: 'worker_uid_abc',
-      workerEmail: 'worker1@gospellabor.org',
+      workerEmail: 'worker1@gospellabour.org',
       fullName: 'Sam Wilson',
       phone: '5551234567',
       programs: ['Friday Program / Something New'],

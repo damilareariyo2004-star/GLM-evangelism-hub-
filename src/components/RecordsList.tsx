@@ -161,7 +161,7 @@ export const RecordsList: React.FC<RecordsListProps> = ({
           <div className="inline-block p-1 rounded-xl bg-white shadow-2xs border border-slate-200 mx-auto">
             <img
               src="/assets/aistudio/IMG-20261015-WA0010_bc047986.jpg"
-              alt="Gospel Labor Ministry"
+              alt="Gospel Labour Ministry"
               className="w-14 h-14 rounded-lg object-contain"
             />
           </div>
@@ -171,7 +171,7 @@ export const RecordsList: React.FC<RecordsListProps> = ({
               Church Worker Sign In Required
             </h2>
             <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
-              Gospel Labor Ministry
+              Gospel Labour Ministry
             </p>
             <p className="text-xs sm:text-sm text-slate-600 leading-relaxed pt-1.5">
               To keep outreach contacts and follow-ups confidential, each worker has a private account. Sign in to view and manage your souls recorded.

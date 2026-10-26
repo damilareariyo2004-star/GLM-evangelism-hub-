@@ -2,7 +2,7 @@
   "entities": {
     "EvangelismRecord": {
       "title": "EvangelismRecord",
-      "description": "A record of an individual met during church evangelism outreach by Gospel Labor Ministry, owned by a specific worker.",
+      "description": "A record of an individual met during church evangelism outreach by Gospel Labour Ministry, owned by a specific worker.",
       "type": "object",
       "properties": {
         "workerUid": {

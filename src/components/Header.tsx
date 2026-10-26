@@ -26,7 +26,7 @@ export const Header: React.FC<HeaderProps> = ({
             <div className="relative flex-shrink-0">
               <img
                 src="/assets/aistudio/IMG-20261015-WA0010_bc047986.jpg"
-                alt="Gospel Labor Ministry Logo"
+                alt="Gospel Labour Ministry Logo"
                 className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl object-contain bg-white p-0.5 shadow-xs border border-white/20 flex-shrink-0"
               />
               <span
@@ -47,7 +47,7 @@ export const Header: React.FC<HeaderProps> = ({
                 )}
               </div>
               <p className="text-[11px] sm:text-xs font-medium tracking-wider text-slate-300 uppercase truncate">
-                Gospel Labor Ministry
+                Gospel Labour Ministry
               </p>
             </div>
           </div>

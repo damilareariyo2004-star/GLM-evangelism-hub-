@@ -38,10 +38,10 @@ export const WelcomeSplashScreen: React.FC<WelcomeSplashScreenProps> = ({ onDism
             transition: { duration: 0.45, ease: [0.22, 1, 0.36, 1] }
           }}
           onClick={handleClose}
-          className="fixed inset-0 z-50 flex flex-col items-center justify-center p-6 cursor-pointer select-none overflow-hidden h-[100dvh] min-h-[100dvh]"
+          className="fixed inset-0 z-[100] flex flex-col items-center justify-center p-6 cursor-pointer select-none overflow-hidden h-[100dvh] min-h-[100dvh]"
           style={{
-            backgroundColor: '#eff1f5',
-            background: 'radial-gradient(circle at 50% 38%, #f8f9fb 0%, #eff1f5 55%, #e5e8ee 100%)'
+            backgroundColor: '#e2e0e3',
+            background: 'radial-gradient(circle at 50% 38%, #edeaed 0%, #e2e0e3 55%, #d8d6da 100%)'
           }}
           role="button"
           aria-label="Welcome screen. Tap anywhere to enter."
@@ -167,14 +167,14 @@ export const WelcomeSplashScreen: React.FC<WelcomeSplashScreenProps> = ({ onDism
                 }}
                 className="relative w-48 h-48 sm:w-56 sm:h-56 overflow-hidden rounded-full flex items-center justify-center"
                 style={{
-                  WebkitMaskImage: 'radial-gradient(circle at center, black 60%, rgba(0, 0, 0, 0.9) 70%, rgba(0, 0, 0, 0.3) 85%, transparent 100%)',
-                  maskImage: 'radial-gradient(circle at center, black 60%, rgba(0, 0, 0, 0.9) 70%, rgba(0, 0, 0, 0.3) 85%, transparent 100%)'
+                  WebkitMaskImage: 'radial-gradient(circle at center, black 55%, rgba(0, 0, 0, 0.85) 68%, rgba(0, 0, 0, 0.2) 84%, transparent 100%)',
+                  maskImage: 'radial-gradient(circle at center, black 55%, rgba(0, 0, 0, 0.85) 68%, rgba(0, 0, 0, 0.2) 84%, transparent 100%)'
                 }}
               >
                 {/* Scaled image inside overflow-hidden to crop ~3% off every edge, no mix-blend-mode */}
                 <img
                   src="/assets/glm-glass-logo.jpg"
-                  alt="Gospel Labor Ministry"
+                  alt="Gospel Labour Ministry"
                   className="w-full h-full object-cover scale-[1.07] pointer-events-none"
                 />
 
@@ -194,7 +194,7 @@ export const WelcomeSplashScreen: React.FC<WelcomeSplashScreenProps> = ({ onDism
               </motion.div>
             </div>
 
-            {/* Typography: "GLM Evangelism Hub" word by word */}
+            {/* Typography: "GLM Evangelism Hub" word by word in navy */}
             <div className="flex items-center justify-center gap-2 flex-wrap mt-1">
               {titleWords.map((word, idx) => (
                 <motion.span
@@ -206,14 +206,14 @@ export const WelcomeSplashScreen: React.FC<WelcomeSplashScreenProps> = ({ onDism
                     duration: 0.5,
                     ease: [0.22, 1, 0.36, 1]
                   }}
-                  className="text-2xl sm:text-3xl font-black text-[#0F2744] tracking-tight inline-block"
+                  className="text-2xl sm:text-3xl font-black text-[#0B1E38] tracking-tight inline-block"
                 >
                   {word}
                 </motion.span>
               ))}
             </div>
 
-            {/* Sub-text: "GOSPEL LABOR MINISTRY" with wide letter spacing */}
+            {/* Sub-text: "GOSPEL LABOUR MINISTRY" with wide letter spacing */}
             <motion.p
               initial={shouldReduceMotion ? { opacity: 0 } : { opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
@@ -224,7 +224,7 @@ export const WelcomeSplashScreen: React.FC<WelcomeSplashScreenProps> = ({ onDism
               }}
               className="text-xs sm:text-sm font-black text-slate-500 uppercase tracking-[0.25em] mt-2"
             >
-              Gospel Labor Ministry
+              Gospel Labour Ministry
             </motion.p>
 
             {/* Thin orange progress bar */}

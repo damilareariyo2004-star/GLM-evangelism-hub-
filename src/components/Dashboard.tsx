@@ -82,7 +82,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
           <div className="space-y-1.5 min-w-0">
             <div className="flex items-center gap-2">
               <span className="text-[11px] font-semibold tracking-wider text-slate-300 uppercase">
-                Gospel Labor Ministry
+                Gospel Labour Ministry
               </span>
               <span className="text-slate-500">•</span>
               <span className="text-[11px] text-blue-300 font-medium">
@@ -93,7 +93,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
               GLM Evangelism Overview
             </h2>
             <p className="text-xs sm:text-sm text-slate-300 max-w-xl italic">
-              "The harvest truly is great, but the laborers are few: pray ye therefore the Lord of the harvest..." — Luke 10:2
+              "...the harvest truly is great, but the labourers are few: pray ye therefore the Lord of the harvest..." (Luke 10:2)
             </p>
           </div>
 
@@ -450,10 +450,10 @@ export const Dashboard: React.FC<DashboardProps> = ({
                 alt="GLM Logo"
                 className="w-5 h-5 rounded-md bg-white object-contain p-0.5"
               />
-              <span>Gospel Labor Ministry</span>
+              <span>Gospel Labour Ministry</span>
             </div>
             <p className="text-xs text-slate-300 leading-relaxed">
-              Equipping laborers for gospel evangelism, outreach discipleship, and continuous follow-up for every soul met.
+              Equipping labourers for gospel evangelism, outreach discipleship, and continuous follow-up for every soul met.
             </p>
             <div className="pt-2 border-t border-slate-800/80 flex items-center justify-between text-[11px] text-slate-400 font-medium">
               <span className="flex items-center gap-1">

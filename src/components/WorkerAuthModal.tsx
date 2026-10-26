@@ -32,6 +32,7 @@ import { verifyAdminAccess, checkIfWorkerRemoved } from '../services/recordServi
 interface WorkerAuthModalProps {
   isOpen: boolean;
   currentUser: User | null;
+  isGate?: boolean;
   onClose: () => void;
   onSuccess: (user: User) => void;
   onAdminSuccess: (user: User) => void;
@@ -40,6 +41,7 @@ interface WorkerAuthModalProps {
 export const WorkerAuthModal: React.FC<WorkerAuthModalProps> = ({
   isOpen,
   currentUser,
+  isGate = false,
   onClose,
   onSuccess,
   onAdminSuccess
@@ -242,16 +244,22 @@ export const WorkerAuthModal: React.FC<WorkerAuthModalProps> = ({
   const firebaseProvidersUrl = `https://console.firebase.google.com/project/${firebaseConfig.projectId}/authentication/providers`;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-xs animate-in fade-in overflow-y-auto">
-      <div className="bg-white rounded-3xl max-w-md w-full p-6 sm:p-8 shadow-2xl border border-slate-200 relative space-y-5 my-8">
-        {/* Close Button */}
-        <button
-          onClick={onClose}
-          className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 p-1.5 rounded-xl hover:bg-slate-100 transition-colors cursor-pointer"
-          aria-label="Close"
-        >
-          <X className="w-5 h-5" />
-        </button>
+    <div
+      className={`fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 md:p-6 overflow-y-auto min-h-[100dvh] h-[100dvh] ${
+        isGate ? 'bg-[#0B1E33]/92 backdrop-blur-sm' : 'bg-slate-950/60 backdrop-blur-xs'
+      } animate-in fade-in`}
+    >
+      <div className="bg-white rounded-3xl max-w-md w-full p-5 sm:p-8 shadow-2xl border border-slate-200 relative space-y-4 sm:space-y-5 my-auto max-h-none overflow-visible">
+        {/* Close Button (Hidden when acting as sign-in gate) */}
+        {!isGate && (
+          <button
+            onClick={onClose}
+            className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 p-1.5 rounded-xl hover:bg-slate-100 transition-colors cursor-pointer"
+            aria-label="Close"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        )}
 
         {/* Top Logo and Header */}
         <div className="text-center space-y-2 pt-1">
@@ -503,7 +511,7 @@ export const WorkerAuthModal: React.FC<WorkerAuthModalProps> = ({
 
             <div className="relative flex items-center justify-center">
               <div className="border-t border-slate-200 w-full"></div>
-              <span className="bg-white px-3 text-xs text-slate-400 font-semibold uppercase">
+              <span className="bg-white px-3 text-xs text-slate-400 font-semibold uppercase whitespace-nowrap">
                 or with email
               </span>
               <div className="border-t border-slate-200 w-full"></div>

@@ -31,17 +31,18 @@ import {
 import { auth, testConnection } from './firebase';
 import { EvangelismRecord, DashboardStats } from './types';
 
+/**
+ * Idle limit in milliseconds before automatic sign-out when the app stays in the background.
+ * Default: 5 minutes (5 * 60 * 1000 ms = 300,000 ms).
+ */
+export const BACKGROUND_IDLE_TIMEOUT_MS = 5 * 60 * 1000;
+
 export default function App() {
-  const [showWelcomeSplash, setShowWelcomeSplash] = useState<boolean>(() => {
-    try {
-      return typeof window !== 'undefined' ? !sessionStorage.getItem('glm_welcome_screen_seen') : false;
-    } catch {
-      return false;
-    }
-  });
+  // Always play welcome splash every time the app loads or browser refreshes
+  const [showWelcomeSplash, setShowWelcomeSplash] = useState<boolean>(true);
 
   const [currentTab, setCurrentTab] = useState<TabType>('dashboard');
-  const [currentUser, setCurrentUser] = useState<User | null>(() => auth.currentUser);
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [isAdminMode, setIsAdminMode] = useState<boolean>(false);
   const [records, setRecords] = useState<EvangelismRecord[]>([]);
   const [selectedRecord, setSelectedRecord] = useState<EvangelismRecord | null>(null);
@@ -49,11 +50,57 @@ export default function App() {
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
   const [removedWorkerNotice, setRemovedWorkerNotice] = useState<string | null>(null);
 
+  // Ensure every page load / refresh starts signed out so sign-in gate is always presented
+  useEffect(() => {
+    setCurrentUser(null);
+    setIsAdminMode(false);
+    setRecords([]);
+    signOut(auth).catch(() => {});
+  }, []);
+
   // Test Firebase connection on mount
   useEffect(() => {
     testConnection().catch((err) => {
       console.warn('Initial Firestore ping note:', err);
     });
+  }, []);
+
+  // Automatic sign-out when tab stays in background for more than 5 minutes
+  useEffect(() => {
+    let backgroundTimestamp: number | null = null;
+
+    const handleVisibilityChange = async () => {
+      if (document.visibilityState === 'hidden') {
+        // App went to background
+        backgroundTimestamp = Date.now();
+      } else if (document.visibilityState === 'visible') {
+        // App returned to foreground
+        if (backgroundTimestamp !== null) {
+          const durationAwayMs = Date.now() - backgroundTimestamp;
+          backgroundTimestamp = null;
+
+          if (durationAwayMs >= BACKGROUND_IDLE_TIMEOUT_MS) {
+            // Unbind state and listeners before calling signOut
+            setCurrentUser(null);
+            setIsAdminMode(false);
+            setIsAuthModalOpen(false);
+            setRecords([]);
+            try {
+              await signOut(auth);
+            } catch (err) {
+              console.warn('Sign-out on background timeout error:', err);
+            }
+            // Replay the welcome splash screen when they return
+            setShowWelcomeSplash(true);
+          }
+        }
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
   }, []);
 
   // Listen to Firebase Authentication state changes
@@ -63,9 +110,10 @@ export default function App() {
         // Enforce removed worker restriction
         const isRemoved = await checkIfWorkerRemoved(user.uid);
         if (isRemoved) {
-          await signOut(auth);
           setCurrentUser(null);
           setIsAdminMode(false);
+          setRecords([]);
+          await signOut(auth);
           setRemovedWorkerNotice('Your access has been removed. Please contact your admin.');
           return;
         }
@@ -73,6 +121,7 @@ export default function App() {
       setCurrentUser(user);
       if (!user) {
         setIsAdminMode(false);
+        setRecords([]);
       }
     });
     return () => {
@@ -82,7 +131,8 @@ export default function App() {
 
   // Real-time Firestore subscription (scoped to worker UID, or all records in Admin mode)
   useEffect(() => {
-    if (!currentUser) {
+    // Only subscribe if user is fully authenticated and matches current auth session
+    if (!currentUser || !auth.currentUser || currentUser.uid !== auth.currentUser.uid) {
       setRecords([]);
       return;
     }
@@ -165,130 +215,149 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col selection:bg-orange-100 selection:text-orange-900">
-      {/* First-time Animated Welcome Screen */}
+      {/* Animated Welcome Splash Screen (Plays on every page load / refresh) */}
       {showWelcomeSplash && (
         <WelcomeSplashScreen onDismiss={() => setShowWelcomeSplash(false)} />
       )}
 
-      {/* Header with Church Logo & Worker / Admin Profile */}
-      <Header
-        currentUser={currentUser}
-        onOpenAuth={() => setIsAuthModalOpen(true)}
-        recordsCount={records.length}
-        isAdminMode={isAdminMode}
-        onExitAdmin={() => setIsAdminMode(false)}
-      />
-
-      {/* Navigation (Tabs for workers; hidden in Admin mode) */}
-      {!isAdminMode && (
-        <Navigation
-          currentTab={currentTab}
-          onChangeTab={(tab) => setCurrentTab(tab)}
-          recordsCount={records.length}
+      {/* SIGN-IN GATE: When not signed in, show the non-dismissible full-screen gate; do not render the dashboard */}
+      {!currentUser ? (
+        <WorkerAuthModal
+          isOpen={true}
+          isGate={true}
+          currentUser={null}
+          onClose={() => {}}
+          onSuccess={(user) => {
+            setCurrentUser(user);
+            setIsAdminMode(false);
+          }}
+          onAdminSuccess={(adminUser) => {
+            setCurrentUser(adminUser);
+            setIsAdminMode(true);
+          }}
         />
-      )}
-
-      {/* Main Content Area */}
-      <main className="flex-1 max-w-5xl w-full mx-auto px-4 py-5 sm:py-6">
-        {isAdminMode ? (
-          <AdminPortal
+      ) : (
+        <>
+          {/* Header with Church Logo & Worker / Admin Profile */}
+          <Header
             currentUser={currentUser}
-            records={records}
-            onSelectRecord={(rec) => setSelectedRecord(rec)}
+            onOpenAuth={() => setIsAuthModalOpen(true)}
+            recordsCount={records.length}
+            isAdminMode={isAdminMode}
             onExitAdmin={() => setIsAdminMode(false)}
-            onUpdateRecord={handleUpdateRecord}
-            onDeleteRecord={handleDeleteRecord}
           />
-        ) : (
-          <>
-            {currentTab === 'dashboard' && (
-              <Dashboard
-                stats={stats}
-                recentRecords={records}
-                currentUser={currentUser}
-                onOpenAuth={() => setIsAuthModalOpen(true)}
-                onNavigateToAdd={() => setCurrentTab('add')}
-                onNavigateToRecords={() => setCurrentTab('records')}
-                onNavigateToSermons={() => setCurrentTab('sermons')}
-                onOpenExportModal={() => setIsExportModalOpen(true)}
-                onSelectRecord={(rec) => {
-                  if (currentUser) {
-                    setSelectedRecord(rec);
-                  } else {
-                    setIsAuthModalOpen(true);
-                  }
-                }}
-              />
-            )}
 
-            {currentTab === 'add' && (
-              <AddPersonForm
-                existingRecords={records}
-                currentUser={currentUser}
-                onOpenAuth={() => setIsAuthModalOpen(true)}
-                onSubmitRecord={handleCreateRecord}
-                onNavigateToRecords={() => setCurrentTab('records')}
-                onNavigateToDashboard={() => setCurrentTab('dashboard')}
-              />
-            )}
+          {/* Navigation (Tabs for workers; hidden in Admin mode) */}
+          {!isAdminMode && (
+            <Navigation
+              currentTab={currentTab}
+              onChangeTab={(tab) => setCurrentTab(tab)}
+              recordsCount={records.length}
+            />
+          )}
 
-            {currentTab === 'records' && (
-              <RecordsList
+          {/* Main Content Area */}
+          <main className="flex-1 max-w-5xl w-full mx-auto px-4 py-5 sm:py-6">
+            {isAdminMode ? (
+              <AdminPortal
+                currentUser={currentUser}
                 records={records}
-                currentUser={currentUser}
-                onOpenAuth={() => setIsAuthModalOpen(true)}
                 onSelectRecord={(rec) => setSelectedRecord(rec)}
-                onNavigateToAdd={() => setCurrentTab('add')}
+                onExitAdmin={() => setIsAdminMode(false)}
                 onUpdateRecord={handleUpdateRecord}
                 onDeleteRecord={handleDeleteRecord}
               />
+            ) : (
+              <>
+                {currentTab === 'dashboard' && (
+                  <Dashboard
+                    stats={stats}
+                    recentRecords={records}
+                    currentUser={currentUser}
+                    onOpenAuth={() => setIsAuthModalOpen(true)}
+                    onNavigateToAdd={() => setCurrentTab('add')}
+                    onNavigateToRecords={() => setCurrentTab('records')}
+                    onNavigateToSermons={() => setCurrentTab('sermons')}
+                    onOpenExportModal={() => setIsExportModalOpen(true)}
+                    onSelectRecord={(rec) => {
+                      setSelectedRecord(rec);
+                    }}
+                  />
+                )}
+
+                {currentTab === 'add' && (
+                  <AddPersonForm
+                    existingRecords={records}
+                    currentUser={currentUser}
+                    onOpenAuth={() => setIsAuthModalOpen(true)}
+                    onSubmitRecord={handleCreateRecord}
+                    onNavigateToRecords={() => setCurrentTab('records')}
+                    onNavigateToDashboard={() => setCurrentTab('dashboard')}
+                  />
+                )}
+
+                {currentTab === 'records' && (
+                  <RecordsList
+                    records={records}
+                    currentUser={currentUser}
+                    onOpenAuth={() => setIsAuthModalOpen(true)}
+                    onSelectRecord={(rec) => setSelectedRecord(rec)}
+                    onNavigateToAdd={() => setCurrentTab('add')}
+                    onUpdateRecord={handleUpdateRecord}
+                    onDeleteRecord={handleDeleteRecord}
+                  />
+                )}
+
+                {currentTab === 'sermons' && (
+                  <SermonSharing
+                    records={records}
+                    onBackToDashboard={() => setCurrentTab('dashboard')}
+                  />
+                )}
+              </>
             )}
+          </main>
 
-            {currentTab === 'sermons' && (
-              <SermonSharing
-                records={records}
-                onBackToDashboard={() => setCurrentTab('dashboard')}
-              />
-            )}
-          </>
-        )}
-      </main>
+          {/* Export Report Modal */}
+          <ExportReportModal
+            isOpen={isExportModalOpen}
+            onClose={() => setIsExportModalOpen(false)}
+            records={records}
+          />
 
-      {/* Export Report Modal */}
-      <ExportReportModal
-        isOpen={isExportModalOpen}
-        onClose={() => setIsExportModalOpen(false)}
-        records={records}
-      />
+          {/* Record Detail Modal */}
+          {selectedRecord && (
+            <RecordDetailModal
+              record={selectedRecord}
+              currentUser={currentUser}
+              isAdmin={isAdminMode}
+              onClose={() => setSelectedRecord(null)}
+              onUpdateRecord={handleUpdateRecord}
+              onDeleteRecord={handleDeleteRecord}
+            />
+          )}
 
-      {/* Record Detail Modal */}
-      {selectedRecord && (
-        <RecordDetailModal
-          record={selectedRecord}
-          currentUser={currentUser}
-          isAdmin={isAdminMode}
-          onClose={() => setSelectedRecord(null)}
-          onUpdateRecord={handleUpdateRecord}
-          onDeleteRecord={handleDeleteRecord}
-        />
+          {/* Worker Profile / Sign Out Modal (opened from Header account button) */}
+          {isAuthModalOpen && (
+            <WorkerAuthModal
+              isOpen={isAuthModalOpen}
+              isGate={false}
+              currentUser={currentUser}
+              onClose={() => setIsAuthModalOpen(false)}
+              onSuccess={(user) => {
+                setCurrentUser(user);
+                setIsAdminMode(false);
+                setIsAuthModalOpen(false);
+              }}
+              onAdminSuccess={(adminUser) => {
+                setCurrentUser(adminUser);
+                setIsAdminMode(true);
+                setIsAuthModalOpen(false);
+              }}
+            />
+          )}
+        </>
       )}
-
-      {/* Worker Firebase Auth Modal (Google, Email/Password & Admin Sign In) */}
-      <WorkerAuthModal
-        isOpen={isAuthModalOpen}
-        currentUser={currentUser}
-        onClose={() => setIsAuthModalOpen(false)}
-        onSuccess={(user) => {
-          setCurrentUser(user);
-          setIsAdminMode(false);
-          setIsAuthModalOpen(false);
-        }}
-        onAdminSuccess={(adminUser) => {
-          setCurrentUser(adminUser);
-          setIsAdminMode(true);
-          setIsAuthModalOpen(false);
-        }}
-      />
 
       {/* Removed Worker Access Notice Modal */}
       {removedWorkerNotice && (

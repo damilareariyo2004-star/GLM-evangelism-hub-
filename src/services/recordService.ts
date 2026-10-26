@@ -13,7 +13,7 @@ import {
   serverTimestamp,
   writeBatch
 } from 'firebase/firestore';
-import { db, handleFirestoreError, OperationType } from '../firebase';
+import { db, auth, handleFirestoreError, OperationType } from '../firebase';
 import { EvangelismRecord, DashboardStats, ChurchProgram, RemovedWorker } from '../types';
 import { compareDatesDesc } from '../utils/dateUtils';
 
@@ -58,7 +58,7 @@ export function subscribeToWorkerRecords(
   onSuccess: (records: EvangelismRecord[]) => void,
   onError?: (err: unknown) => void
 ): () => void {
-  if (!workerUid) {
+  if (!workerUid || !auth.currentUser) {
     onSuccess([]);
     return () => {};
   }
@@ -106,6 +106,10 @@ export function subscribeToWorkerRecords(
         onSuccess(list);
       },
       (error) => {
+        // If the user signed out, auth.currentUser is null; ignore expected listener teardown
+        if (!auth.currentUser) {
+          return;
+        }
         console.warn('Firestore snapshot error for worker records:', error);
         if (onError) onError(error);
         try {
@@ -257,6 +261,7 @@ export async function deleteEvangelismRecord(workerUid: string, id: string): Pro
  * Non-admin users are rejected by security rules and return false.
  */
 export async function verifyAdminAccess(): Promise<boolean> {
+  if (!auth.currentUser) return false;
   try {
     const recordsCol = collection(db, COLLECTION_NAME);
     const q = query(recordsCol, limit(1));
@@ -275,6 +280,11 @@ export function subscribeToAllRecordsForAdmin(
   onSuccess: (records: EvangelismRecord[]) => void,
   onError?: (err: unknown) => void
 ): () => void {
+  if (!auth.currentUser) {
+    onSuccess([]);
+    return () => {};
+  }
+
   try {
     const recordsCol = collection(db, COLLECTION_NAME);
     const unsubscribe = onSnapshot(
@@ -308,6 +318,10 @@ export function subscribeToAllRecordsForAdmin(
         onSuccess(list);
       },
       (error) => {
+        // If the user signed out, auth.currentUser is null; ignore expected listener teardown
+        if (!auth.currentUser) {
+          return;
+        }
         console.warn('Firestore snapshot error for admin records:', error);
         if (onError) onError(error);
         try {
@@ -373,7 +387,7 @@ export async function deleteRecordAsAdmin(id: string): Promise<void> {
  * Evaluates removedWorkers/{workerUid}.
  */
 export async function checkIfWorkerRemoved(workerUid: string): Promise<boolean> {
-  if (!workerUid) return false;
+  if (!workerUid || !auth.currentUser) return false;
   try {
     const docRef = doc(db, REMOVED_WORKERS_COLLECTION, workerUid);
     const snap = await getDoc(docRef);
@@ -391,6 +405,11 @@ export function subscribeToRemovedWorkers(
   onSuccess: (removed: RemovedWorker[]) => void,
   onError?: (err: unknown) => void
 ): () => void {
+  if (!auth.currentUser) {
+    onSuccess([]);
+    return () => {};
+  }
+
   try {
     const colRef = collection(db, REMOVED_WORKERS_COLLECTION);
     const unsubscribe = onSnapshot(
@@ -410,6 +429,9 @@ export function subscribeToRemovedWorkers(
         onSuccess(list);
       },
       (error) => {
+        if (!auth.currentUser) {
+          return;
+        }
         console.warn('Firestore removedWorkers subscription error:', error);
         if (onError) onError(error);
       }

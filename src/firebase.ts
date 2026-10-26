@@ -1,5 +1,5 @@
 import { initializeApp } from 'firebase/app';
-import { getAuth } from 'firebase/auth';
+import { getAuth, setPersistence, inMemoryPersistence } from 'firebase/auth';
 import { getFirestore, doc, getDocFromServer } from 'firebase/firestore';
 import firebaseConfig from '../firebase-applet-config.json';
 
@@ -9,8 +9,11 @@ export const app = initializeApp(firebaseConfig);
 // CRITICAL: The app must specify firestoreDatabaseId for custom provisioned databases
 export const db = getFirestore(app, firebaseConfig.firestoreDatabaseId);
 
-// Initialize Firebase Auth
+// Initialize Firebase Auth with inMemoryPersistence so credentials never persist across reloads
 export const auth = getAuth(app);
+setPersistence(auth, inMemoryPersistence).catch((err) => {
+  console.warn('Could not set inMemoryPersistence:', err);
+});
 
 export enum OperationType {
   CREATE = 'create',

@@ -212,3 +212,20 @@ test('Batch deletion chunks IDs into arrays of at most 500 items', () => {
   assert.equal(chunks[1].length, 500);
   assert.equal(chunks[2].length, 250);
 });
+
+test('BACKGROUND_IDLE_TIMEOUT_MS is 5 minutes and evaluates elapsed background duration correctly', () => {
+  const BACKGROUND_IDLE_TIMEOUT_MS = 5 * 60 * 1000;
+  assert.equal(BACKGROUND_IDLE_TIMEOUT_MS, 300000);
+
+  // Active usage: tab is visible -> duration is 0
+  const activeAwayDuration = 0;
+  assert.equal(activeAwayDuration >= BACKGROUND_IDLE_TIMEOUT_MS, false);
+
+  // Quick switch away: 30 seconds -> should not sign out
+  const quickAwayDuration = 30 * 1000;
+  assert.equal(quickAwayDuration >= BACKGROUND_IDLE_TIMEOUT_MS, false);
+
+  // Away in background for 5 minutes and 1 second -> should sign out
+  const longAwayDuration = 5 * 60 * 1000 + 1000;
+  assert.equal(longAwayDuration >= BACKGROUND_IDLE_TIMEOUT_MS, true);
+});

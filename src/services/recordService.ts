@@ -16,6 +16,7 @@ import {
 import { db, auth, handleFirestoreError, OperationType } from '../firebase';
 import { EvangelismRecord, DashboardStats, ChurchProgram, RemovedWorker } from '../types';
 import { compareDatesDesc } from '../utils/dateUtils';
+import { isApprovedAdminEmail } from '../config/adminConfig';
 
 const COLLECTION_NAME = 'records';
 const REMOVED_WORKERS_COLLECTION = 'removedWorkers';
@@ -260,17 +261,9 @@ export async function deleteEvangelismRecord(workerUid: string, id: string): Pro
  * Verifies admin rights by performing an admin-scoped probe read against the records collection.
  * Non-admin users are rejected by security rules and return false.
  */
-export async function verifyAdminAccess(): Promise<boolean> {
-  if (!auth.currentUser) return false;
-  try {
-    const recordsCol = collection(db, COLLECTION_NAME);
-    const q = query(recordsCol, limit(1));
-    await getDocs(q);
-    return true;
-  } catch (err) {
-    console.warn('Admin verification check:', err);
-    return false;
-  }
+export async function verifyAdminAccess(email?: string | null): Promise<boolean> {
+  const targetEmail = email || auth.currentUser?.email;
+  return isApprovedAdminEmail(targetEmail);
 }
 
 /**

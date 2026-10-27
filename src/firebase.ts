@@ -1,6 +1,6 @@
 import { initializeApp } from 'firebase/app';
 import { getAuth, setPersistence, inMemoryPersistence } from 'firebase/auth';
-import { getFirestore, doc, getDocFromServer } from 'firebase/firestore';
+import { getFirestore, doc, getDoc, getDocFromServer } from 'firebase/firestore';
 import firebaseConfig from '../firebase-applet-config.json';
 
 // Initialize Firebase App
@@ -52,19 +52,19 @@ export function handleFirestoreError(error: unknown, operationType: OperationTyp
   throw new Error(JSON.stringify(errInfo));
 }
 
-// Test initial connection with timeout so offline/restricted sandbox doesn't block or throw 10s error
+// Test initial connection safely with graceful offline fallback
 export async function testConnection(): Promise<boolean> {
   try {
     const timeout = new Promise<never>((_, reject) =>
-      setTimeout(() => reject(new Error('connection_timeout')), 2000)
+      setTimeout(() => reject(new Error('connection_timeout')), 1500)
     );
     await Promise.race([
-      getDocFromServer(doc(db, 'test', 'connection')),
+      getDoc(doc(db, 'test', 'connection')),
       timeout
     ]);
     return true;
   } catch {
-    // Client smoothly runs in offline-first mode with IndexedDB/cache persistence
+    // Client smoothly operates in offline mode with cache persistence
     return false;
   }
 }

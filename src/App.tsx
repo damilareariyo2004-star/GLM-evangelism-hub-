@@ -30,6 +30,7 @@ import {
 } from './services/recordService';
 import { auth, testConnection } from './firebase';
 import { EvangelismRecord, DashboardStats } from './types';
+import { getPendingAdminSignIn } from './config/adminConfig';
 
 /**
  * Idle limit in milliseconds before automatic sign-out when the app stays in the background.
@@ -106,6 +107,11 @@ export default function App() {
   // Listen to Firebase Authentication state changes
   useEffect(() => {
     const unsubscribeAuth = onAuthStateChanged(auth, async (user) => {
+      // If admin sign-in is actively being verified in the modal, let handleAdminGoogleSignIn handle role transition
+      if (getPendingAdminSignIn()) {
+        return;
+      }
+
       if (user) {
         // Enforce removed worker restriction
         const isRemoved = await checkIfWorkerRemoved(user.uid);

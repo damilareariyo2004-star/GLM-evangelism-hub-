@@ -27,7 +27,8 @@ import {
 } from 'lucide-react';
 import { auth } from '../firebase';
 import firebaseConfig from '../../firebase-applet-config.json';
-import { verifyAdminAccess, checkIfWorkerRemoved } from '../services/recordService';
+import { checkIfWorkerRemoved } from '../services/recordService';
+import { isApprovedAdminEmail, setPendingAdminSignIn } from '../config/adminConfig';
 
 interface WorkerAuthModalProps {
   isOpen: boolean;
@@ -123,6 +124,7 @@ export const WorkerAuthModal: React.FC<WorkerAuthModalProps> = ({
     setIsLoading(true);
     setError(null);
     setErrorType(null);
+    setPendingAdminSignIn(true);
 
     try {
       const provider = new GoogleAuthProvider();
@@ -132,17 +134,21 @@ export const WorkerAuthModal: React.FC<WorkerAuthModalProps> = ({
 
       const result = await signInWithPopup(auth, provider);
 
-      // Verify admin access by attempting an admin-only read
-      const hasAdminRights = await verifyAdminAccess();
+      // Verify admin rights using canonical trimmed, lowercase approved list
+      const userEmail = (result.user.email || '').trim().toLowerCase();
+      const hasAdminRights = isApprovedAdminEmail(userEmail);
       if (!hasAdminRights) {
         await signOut(auth);
+        setPendingAdminSignIn(false);
         setError('This account is not an admin.');
         return;
       }
 
+      setPendingAdminSignIn(false);
       onAdminSuccess(result.user);
       onClose();
     } catch (err: unknown) {
+      setPendingAdminSignIn(false);
       console.error('Admin Sign-In error:', err);
       const msg = err instanceof Error ? err.message : String(err);
       if (msg.includes('popup-closed-by-user') || msg.includes('cancelled-popup-request')) {

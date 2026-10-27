@@ -24,7 +24,7 @@ service cloud.firestore {
     function approvedAdminEmails() {
       return [
         'damilareariyo2004@gmail.com', // Slot 1
-        'sdemiliade@gmail.com'          // Slot 2
+        'kingsolomond01@gmail.com'      // Slot 2
         // Slot 3: (empty - add 3rd admin email here in lowercase)
         // Slot 4: (empty - add 4th admin email here in lowercase)
         // Slot 5: (empty - add 5th admin email here in lowercase)

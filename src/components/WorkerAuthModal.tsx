@@ -135,12 +135,13 @@ export const WorkerAuthModal: React.FC<WorkerAuthModalProps> = ({
       const result = await signInWithPopup(auth, provider);
 
       // Verify admin rights using canonical trimmed, lowercase approved list
-      const userEmail = (result.user.email || '').trim().toLowerCase();
+      const returnedEmail = result.user.email || '';
+      const userEmail = returnedEmail.trim().toLowerCase();
       const hasAdminRights = isApprovedAdminEmail(userEmail);
       if (!hasAdminRights) {
         await signOut(auth);
         setPendingAdminSignIn(false);
-        setError('This account is not an admin.');
+        setError(`This account is not an admin. You signed in as ${returnedEmail || 'unknown'}.`);
         return;
       }
 

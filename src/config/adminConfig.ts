@@ -10,7 +10,7 @@
  */
 export const APPROVED_ADMIN_EMAILS: readonly string[] = [
   'damilareariyo2004@gmail.com', // Slot 1
-  'sdemiliade@gmail.com',         // Slot 2
+  'kingsolomond01@gmail.com',     // Slot 2
   // Slot 3: (empty - reserved for future admin email)
   // Slot 4: (empty - reserved for future admin email)
   // Slot 5: (empty - reserved for future admin email)

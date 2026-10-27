@@ -230,22 +230,24 @@ test('BACKGROUND_IDLE_TIMEOUT_MS is 5 minutes and evaluates elapsed background d
   assert.equal(longAwayDuration >= BACKGROUND_IDLE_TIMEOUT_MS, true);
 });
 
-test('isApprovedAdminEmail validates damilareariyo2004@gmail.com and sdemiliade@gmail.com accurately', async () => {
+test('isApprovedAdminEmail validates damilareariyo2004@gmail.com and kingsolomond01@gmail.com accurately', async () => {
   const { isApprovedAdminEmail, APPROVED_ADMIN_EMAILS } = await import('../config/adminConfig');
   assert.equal(APPROVED_ADMIN_EMAILS.length, 2);
   assert.ok(APPROVED_ADMIN_EMAILS.includes('damilareariyo2004@gmail.com'));
-  assert.ok(APPROVED_ADMIN_EMAILS.includes('sdemiliade@gmail.com'));
+  assert.ok(APPROVED_ADMIN_EMAILS.includes('kingsolomond01@gmail.com'));
+  assert.equal(APPROVED_ADMIN_EMAILS.includes('sdemiliade@gmail.com'), false);
 
   // Exact lowercase
   assert.equal(isApprovedAdminEmail('damilareariyo2004@gmail.com'), true);
-  assert.equal(isApprovedAdminEmail('sdemiliade@gmail.com'), true);
+  assert.equal(isApprovedAdminEmail('kingsolomond01@gmail.com'), true);
 
   // Mixed case and spaces
-  assert.equal(isApprovedAdminEmail('Sdemiliade@gmail.com'), true);
-  assert.equal(isApprovedAdminEmail('  sdemiliade@gmail.com  '), true);
+  assert.equal(isApprovedAdminEmail('Kingsolomond01@gmail.com'), true);
+  assert.equal(isApprovedAdminEmail('  kingsolomond01@gmail.com  '), true);
   assert.equal(isApprovedAdminEmail('DAMILAREARIYO2004@GMAIL.COM'), true);
 
-  // Unapproved emails
+  // Former and unapproved emails
+  assert.equal(isApprovedAdminEmail('sdemiliade@gmail.com'), false);
   assert.equal(isApprovedAdminEmail('randomworker@gmail.com'), false);
   assert.equal(isApprovedAdminEmail('worker@gospellabour.org'), false);
   assert.equal(isApprovedAdminEmail(''), false);

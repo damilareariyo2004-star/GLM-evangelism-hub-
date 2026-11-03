@@ -9,11 +9,11 @@
  * All checks are performed lowercase and trimmed.
  */
 export const APPROVED_ADMIN_EMAILS: readonly string[] = [
-  'damilareariyo2004@gmail.com', // Slot 1
-  'kingsolomond01@gmail.com',     // Slot 2
-  // Slot 3: (empty - reserved for future admin email)
-  // Slot 4: (empty - reserved for future admin email)
-  // Slot 5: (empty - reserved for future admin email)
+  'admin1@glmevangelism.com',
+  'admin2@glmevangelism.com',
+  'admin3@glmevangelism.com',
+  'admin4@glmevangelism.com',
+  'admin5@glmevangelism.com',
 ] as const;
 
 /**

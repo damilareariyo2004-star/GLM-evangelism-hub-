@@ -261,3 +261,134 @@ test('isApprovedAdminEmail validates admin1 to admin5 @glmevangelism.com accurat
   assert.equal(isApprovedAdminEmail(null), false);
   assert.equal(isApprovedAdminEmail(undefined), false);
 });
+
+test('isNeedsFollowUp correctly identifies people not contacted in 3 or more days or never', async () => {
+  const { isNeedsFollowUp } = await import('./recordService');
+  const now = new Date('2026-11-03T12:00:00Z');
+
+  // Case 1: Established believers never show in needs follow-up
+  const establishedRecord: EvangelismRecord = {
+    id: 'est_1',
+    workerUid: 'w1',
+    fullName: 'Established Soul',
+    phone: '08011111111',
+    evangelistName: 'Worker A',
+    date: '2026-10-01',
+    programs: ['Sunday Service'],
+    isNewConvert: false,
+    respondedWell: true,
+    followedUp: true,
+    isEstablished: true
+  };
+  assert.equal(isNeedsFollowUp(establishedRecord, now), false);
+
+  // Case 2: Contacted today (2026-11-03) -> false (< 3 days)
+  const contactedTodayRecord: EvangelismRecord = {
+    id: 'rec_today',
+    workerUid: 'w1',
+    fullName: 'Contacted Today',
+    phone: '08022222222',
+    evangelistName: 'Worker A',
+    date: '2026-11-03',
+    programs: ['Sunday Service'],
+    isNewConvert: false,
+    respondedWell: true,
+    followedUp: true,
+    lastContactedAt: '2026-11-03'
+  };
+  assert.equal(isNeedsFollowUp(contactedTodayRecord, now), false);
+
+  // Case 3: Met earlier, never contacted -> true (or never)
+  const overdueNeverContacted: EvangelismRecord = {
+    id: 'rec_overdue_never',
+    workerUid: 'w1',
+    fullName: 'Overdue Soul',
+    phone: '08033333333',
+    evangelistName: 'Worker A',
+    date: '2026-10-30',
+    programs: ['Sunday Service'],
+    isNewConvert: true,
+    respondedWell: true,
+    followedUp: false
+  };
+  assert.equal(isNeedsFollowUp(overdueNeverContacted, now), true);
+
+  // Case 4: Contacted yesterday (2026-11-02) -> false (< 3 days)
+  const contactedYesterday: EvangelismRecord = {
+    id: 'rec_yesterday',
+    workerUid: 'w1',
+    fullName: 'Recent Contact',
+    phone: '08044444444',
+    evangelistName: 'Worker A',
+    date: '2026-10-20',
+    programs: ['Sunday Service'],
+    isNewConvert: false,
+    respondedWell: true,
+    followedUp: true,
+    lastContactedAt: '2026-11-02'
+  };
+  assert.equal(isNeedsFollowUp(contactedYesterday, now), false);
+
+  // Case 5: Contacted 4 days ago (2026-10-30) -> true (>= 3 days)
+  const contactedOverdue: EvangelismRecord = {
+    id: 'rec_contact_overdue',
+    workerUid: 'w1',
+    fullName: 'Needs Contact Again',
+    phone: '08055555555',
+    evangelistName: 'Worker A',
+    date: '2026-10-20',
+    programs: ['Sunday Service'],
+    isNewConvert: false,
+    respondedWell: true,
+    followedUp: true,
+    lastContactedAt: '2026-10-30'
+  };
+  assert.equal(isNeedsFollowUp(contactedOverdue, now), true);
+});
+
+test('calculateDashboardStats calculates totalCameToChurch from attendance records', () => {
+  const records: EvangelismRecord[] = [
+    {
+      id: 'rec_att_1',
+      workerUid: 'w1',
+      fullName: 'Attendee 1',
+      phone: '0801',
+      evangelistName: 'Worker A',
+      date: '2026-11-01',
+      programs: ['Sunday Service'],
+      isNewConvert: false,
+      respondedWell: true,
+      followedUp: true,
+      attendance: ['2026-11-01|Sunday Service', '2026-11-03|School Auxano']
+    },
+    {
+      id: 'rec_att_2',
+      workerUid: 'w1',
+      fullName: 'Attendee 2',
+      phone: '0802',
+      evangelistName: 'Worker A',
+      date: '2026-11-01',
+      programs: ['Sunday Service'],
+      isNewConvert: false,
+      respondedWell: true,
+      followedUp: true,
+      attendance: ['2026-11-01|Sunday Service']
+    },
+    {
+      id: 'rec_no_att',
+      workerUid: 'w1',
+      fullName: 'No Attendee',
+      phone: '0803',
+      evangelistName: 'Worker A',
+      date: '2026-11-01',
+      programs: ['Sunday Service'],
+      isNewConvert: false,
+      respondedWell: false,
+      followedUp: false
+    }
+  ];
+
+  const stats = calculateDashboardStats(records);
+  assert.equal(stats.totalCameToChurch, 2);
+});
+

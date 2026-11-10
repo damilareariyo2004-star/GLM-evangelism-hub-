@@ -517,6 +517,8 @@ export function calculateDashboardStats(records: EvangelismRecord[]): DashboardS
   let totalFollowedUp = 0;
   let totalEstablished = 0;
   let pendingFollowUp = 0;
+  let totalCameToChurch = 0;
+  let needsFollowUpCount = 0;
 
   for (const record of records) {
     if (record.isEstablished) {
@@ -528,6 +530,12 @@ export function calculateDashboardStats(records: EvangelismRecord[]): DashboardS
     if (record.isNewConvert) totalNewConverts++;
     if (record.respondedWell) totalRespondedWell++;
     if (record.followedUp) totalFollowedUp++;
+    if (Array.isArray(record.attendance) && record.attendance.length > 0) {
+      totalCameToChurch++;
+    }
+    if (isNeedsFollowUp(record)) {
+      needsFollowUpCount++;
+    }
 
     if (Array.isArray(record.programs)) {
       for (const rawP of record.programs) {
@@ -551,6 +559,30 @@ export function calculateDashboardStats(records: EvangelismRecord[]): DashboardS
     totalFollowedUp,
     totalEstablished,
     pendingFollowUp,
+    totalCameToChurch,
+    needsFollowUpCount,
     programCounts
   };
+}
+
+/**
+ * Checks if a record needs follow-up:
+ * People not contacted in 3 or more days (or never).
+ */
+export function isNeedsFollowUp(record: EvangelismRecord, today: Date = new Date()): boolean {
+  if (record.isEstablished) {
+    return false;
+  }
+  if (!record.lastContactedAt) {
+    return true; // Never contacted
+  }
+  const lastDate = new Date(record.lastContactedAt);
+  if (isNaN(lastDate.getTime())) {
+    return true;
+  }
+  // Normalize both dates to midnight for accurate calendar day difference
+  const tMid = new Date(today.getFullYear(), today.getMonth(), today.getDate()).getTime();
+  const cMid = new Date(lastDate.getFullYear(), lastDate.getMonth(), lastDate.getDate()).getTime();
+  const diffDays = Math.floor((tMid - cMid) / (1000 * 60 * 60 * 24));
+  return diffDays >= 3;
 }

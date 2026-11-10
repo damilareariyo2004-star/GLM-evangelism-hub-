@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {
   escapeCsvField,
   generateRecordsCsv,
+  generateAdminRecordsCsv,
   normalizeDateToYmd,
   filterRecordsByDateRange,
   getPresetDateBounds
@@ -135,4 +136,38 @@ test('generateRecordsCsv includes Established column and optional Worker column'
   assert.ok(adminCsv.startsWith('"Worker","Full Name"'));
   assert.ok(adminCsv.includes('"grace@glm.org"'));
 });
+
+test('generateAdminRecordsCsv outputs exact 11 columns with attendance count and notes', () => {
+  const records: EvangelismRecord[] = [
+    {
+      id: 'rec-admin-1',
+      workerUid: 'uid_grace',
+      fullName: 'Brother Philip',
+      phone: '08099887766',
+      evangelistName: 'Sister Grace',
+      date: '2026-11-01',
+      programs: ['Sunday Service', 'School Auxano'],
+      isNewConvert: true,
+      respondedWell: true,
+      followedUp: true,
+      isEstablished: false,
+      attendance: ['2026-11-01|Sunday Service', '2026-11-03|School Auxano'],
+      notes: 'Came forward during altar call',
+      followUpNotes: 'Followed up on Monday'
+    }
+  ];
+
+  const csv = generateAdminRecordsCsv(records);
+
+  const lines = csv.split('\r\n');
+  assert.equal(
+    lines[0],
+    '"Name","Phone","Evangelist","Date","Programs Invited","New Convert","Responded Well","Followed Up","Established","Attendance Count","Notes"'
+  );
+  assert.ok(lines[1].includes('"Brother Philip"'));
+  assert.ok(lines[1].includes('"Sister Grace"'));
+  assert.ok(lines[1].includes('"2"')); // Attendance Count
+  assert.ok(lines[1].includes('"Came forward during altar call | Followed up on Monday"'));
+});
+
 

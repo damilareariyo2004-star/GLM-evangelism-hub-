@@ -14,17 +14,22 @@ import {
   Radio,
   Calendar,
   ShieldCheck,
-  CheckCircle2
+  CheckCircle2,
+  Bell
 } from 'lucide-react';
 import { User } from 'firebase/auth';
 import { DashboardStats, EvangelismRecord, ChurchProgram } from '../types';
 import { downloadRecordsCsv } from '../utils/csvExport';
 import { formatDateDisplay } from '../utils/dateUtils';
 import { getProgramBadgeStyle } from '../utils/programUtils';
+import { WhatsAppIcon } from './BrandIcons';
+import { getWhatsAppLink } from '../utils/phoneUtils';
+import { isNeedsFollowUp } from '../services/recordService';
 
 interface DashboardProps {
   stats: DashboardStats;
   recentRecords: EvangelismRecord[];
+  allRecords?: EvangelismRecord[];
   currentUser: User | null;
   onOpenAuth: () => void;
   onNavigateToAdd: () => void;
@@ -32,20 +37,26 @@ interface DashboardProps {
   onNavigateToSermons?: () => void;
   onOpenExportModal?: () => void;
   onSelectRecord: (record: EvangelismRecord) => void;
+  onMarkContactedToday?: (record: EvangelismRecord) => Promise<void>;
 }
 
 export const Dashboard: React.FC<DashboardProps> = ({
   stats,
   recentRecords,
+  allRecords = [],
   currentUser,
   onOpenAuth,
   onNavigateToAdd,
   onNavigateToRecords,
   onNavigateToSermons,
   onOpenExportModal,
-  onSelectRecord
+  onSelectRecord,
+  onMarkContactedToday
 }) => {
   const [expandedNotes, setExpandedNotes] = useState<Record<string, boolean>>({});
+
+  const recordsForFollowUp = allRecords.length > 0 ? allRecords : recentRecords;
+  const needsFollowUpList = recordsForFollowUp.filter((r) => isNeedsFollowUp(r));
 
   const toggleNoteExpand = (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
@@ -107,8 +118,8 @@ export const Dashboard: React.FC<DashboardProps> = ({
         </div>
       </div>
 
-      {/* Primary Metrics Grid (5 Clean SaaS Cards) */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
+      {/* Primary Metrics Grid (6 Clean SaaS Cards) */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4">
         {/* Total People Recorded */}
         <div className="bg-white rounded-xl p-4 sm:p-5 border border-slate-200/90 shadow-2xs hover:border-slate-300 transition-colors">
           <div className="flex items-center justify-between">
@@ -122,6 +133,23 @@ export const Dashboard: React.FC<DashboardProps> = ({
           <div className="mt-2.5">
             <span className="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900">
               {stats.totalRecords}
+            </span>
+          </div>
+        </div>
+
+        {/* Came to Church */}
+        <div className="bg-white rounded-xl p-4 sm:p-5 border border-slate-200/90 shadow-2xs hover:border-slate-300 transition-colors">
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
+              Came to Church
+            </span>
+            <div className="w-7 h-7 rounded-lg bg-teal-50 text-teal-700 flex items-center justify-center">
+              <CheckCircle2 className="w-4 h-4" />
+            </div>
+          </div>
+          <div className="mt-2.5">
+            <span className="text-2xl sm:text-3xl font-bold tracking-tight text-teal-700">
+              {stats.totalCameToChurch}
             </span>
           </div>
         </div>
@@ -178,7 +206,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
         </div>
 
         {/* Follow-Up Completed */}
-        <div className="bg-white rounded-xl p-4 sm:p-5 border border-slate-200/90 shadow-2xs hover:border-slate-300 transition-colors col-span-2 sm:col-span-1">
+        <div className="bg-white rounded-xl p-4 sm:p-5 border border-slate-200/90 shadow-2xs hover:border-slate-300 transition-colors">
           <div className="flex items-center justify-between">
             <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
               Follow-Up Completed
@@ -193,6 +221,128 @@ export const Dashboard: React.FC<DashboardProps> = ({
             </span>
           </div>
         </div>
+      </div>
+
+      {/* Needs Follow-Up Section (Worker's own people not contacted in >= 3 days or never) */}
+      <div className="bg-white rounded-2xl p-5 sm:p-6 border border-slate-200/90 shadow-2xs space-y-3.5">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 pb-3">
+          <div>
+            <h3 className="text-base sm:text-lg font-bold text-slate-900 flex items-center gap-2">
+              <Bell className="w-5 h-5 text-amber-600" />
+              <span>Needs follow-up</span>
+              {needsFollowUpList.length > 0 && (
+                <span className="bg-amber-100 text-amber-900 text-xs font-bold px-2 py-0.5 rounded-full">
+                  {needsFollowUpList.length}
+                </span>
+              )}
+            </h3>
+            <p className="text-xs text-slate-500 mt-0.5">
+              Your outreach contacts not contacted in 3 or more days (or never)
+            </p>
+          </div>
+          {needsFollowUpList.length > 0 && (
+            <span className="text-xs font-semibold text-amber-700 bg-amber-50 px-2.5 py-1 rounded-lg border border-amber-200 self-start sm:self-auto">
+              Follow up today to keep the harvest connected!
+            </span>
+          )}
+        </div>
+
+        {needsFollowUpList.length === 0 ? (
+          <div className="p-6 text-center bg-slate-50/80 rounded-xl border border-dashed border-slate-200 space-y-1">
+            <CheckCircle2 className="w-6 h-6 text-emerald-500 mx-auto" />
+            <p className="text-xs sm:text-sm font-semibold text-slate-700">All caught up!</p>
+            <p className="text-xs text-slate-500">Every soul has been contacted within the last 3 days.</p>
+          </div>
+        ) : (
+          <div className="divide-y divide-slate-100 max-h-[380px] overflow-y-auto pr-1">
+            {needsFollowUpList.map((rec) => {
+              const waLink = getWhatsAppLink(
+                rec.phone,
+                rec.fullName,
+                rec.evangelistName || currentUser?.displayName || 'Evangelist'
+              );
+              let statusLabel = 'Never contacted';
+              let isNever = true;
+              if (rec.lastContactedAt) {
+                const cDate = new Date(rec.lastContactedAt);
+                if (!isNaN(cDate.getTime())) {
+                  const now = new Date();
+                  const tMid = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+                  const cMid = new Date(cDate.getFullYear(), cDate.getMonth(), cDate.getDate()).getTime();
+                  const diff = Math.floor((tMid - cMid) / (1000 * 60 * 60 * 24));
+                  statusLabel = diff <= 0 ? 'Contacted today' : `${diff} ${diff === 1 ? 'day' : 'days'} since contact`;
+                  isNever = false;
+                }
+              }
+
+              return (
+                <div
+                  key={rec.id}
+                  className="py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:bg-slate-50/60 p-2 rounded-xl transition-colors"
+                >
+                  <div
+                    onClick={() => onSelectRecord(rec)}
+                    className="min-w-0 flex-1 cursor-pointer"
+                  >
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <h4 className="font-bold text-sm text-slate-900 hover:text-[#0F2744]">
+                        {rec.fullName}
+                      </h4>
+                      <span
+                        className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                          isNever
+                            ? 'bg-rose-50 text-rose-700 border border-rose-200'
+                            : 'bg-amber-50 text-amber-700 border border-amber-200'
+                        }`}
+                      >
+                        {statusLabel}
+                      </span>
+                      {rec.isNewConvert && (
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-rose-100 text-rose-800">
+                          New Convert
+                        </span>
+                      )}
+                      {Array.isArray(rec.attendance) && rec.attendance.length > 0 && (
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-teal-50 text-teal-700 border border-teal-200">
+                          Attended: {rec.attendance.length}
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-xs text-slate-500 mt-0.5">
+                      <span className="font-mono">{rec.phone}</span> • Date met: {formatDateDisplay(rec.date)}
+                    </p>
+                  </div>
+
+                  <div className="flex items-center gap-2 flex-shrink-0">
+                    <a
+                      href={waLink}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-2xs transition-colors min-h-[38px]"
+                      title="Open WhatsApp message"
+                    >
+                      <WhatsAppIcon className="w-3.5 h-3.5" />
+                      <span>WhatsApp</span>
+                    </a>
+                    {onMarkContactedToday && (
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          await onMarkContactedToday(rec);
+                        }}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs border border-slate-300 transition-colors cursor-pointer min-h-[38px]"
+                        title="Mark as contacted today"
+                      >
+                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                        <span>Mark contacted today</span>
+                      </button>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
 
       {/* Program Invitations Section */}

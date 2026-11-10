@@ -71,6 +71,65 @@ export const RecordDetailModal: React.FC<RecordDetailModalProps> = ({
   const [followUpNotes, setFollowUpNotes] = useState(record.followUpNotes || '');
   const [newWorkerNote, setNewWorkerNote] = useState('');
 
+  // Church attendance tracking
+  const [attendanceList, setAttendanceList] = useState<string[]>(record.attendance || []);
+  const [showAddAttendance, setShowAddAttendance] = useState(false);
+  const [attendanceMeeting, setAttendanceMeeting] = useState<string>('Sunday Service');
+  const [attendanceDate, setAttendanceDate] = useState<string>(() => {
+    const now = new Date();
+    const y = now.getFullYear();
+    const m = String(now.getMonth() + 1).padStart(2, '0');
+    const d = String(now.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
+  });
+
+  const ATTENDANCE_MEETINGS = [
+    'Sunday Service',
+    'Wednesday Program/Joint Auxano',
+    'Friday Program/Something New',
+    'School Auxano'
+  ] as const;
+
+  const handleMarkAttended = async () => {
+    if (!attendanceMeeting || !attendanceDate) return;
+    setIsSaving(true);
+    setActionError(null);
+    const entry = `${attendanceDate}|${attendanceMeeting}`;
+    const updated = [...attendanceList, entry];
+
+    try {
+      await onUpdateRecord(record.id!, {
+        attendance: updated
+      });
+      setAttendanceList(updated);
+      setShowAddAttendance(false);
+    } catch (err) {
+      console.error('Failed to mark church attendance:', err);
+      setActionError('Failed to record church attendance. Please check connection and try again.');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleRemoveAttendance = async (indexToRemove: number) => {
+    if (!canModify) return;
+    setIsSaving(true);
+    setActionError(null);
+    const updated = attendanceList.filter((_, idx) => idx !== indexToRemove);
+
+    try {
+      await onUpdateRecord(record.id!, {
+        attendance: updated
+      });
+      setAttendanceList(updated);
+    } catch (err) {
+      console.error('Failed to remove attendance record:', err);
+      setActionError('Failed to update church attendance.');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   const handleToggleProgram = (prog: ChurchProgram) => {
     if (programs.includes(prog)) {
       setPrograms(programs.filter((p) => p !== prog));
@@ -606,6 +665,129 @@ export const RecordDetailModal: React.FC<RecordDetailModalProps> = ({
                 </p>
               </div>
             )}
+
+            {/* Church Attendance Section */}
+            <div className="bg-white rounded-2xl p-4 border border-blue-200/80 shadow-2xs space-y-3">
+              <div className="flex items-center justify-between flex-wrap gap-2">
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-xl bg-blue-50 text-blue-700 flex items-center justify-center border border-blue-100">
+                    <Church className="w-4 h-4 text-[#0F2744]" />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <h4 className="text-xs font-bold text-slate-900 uppercase tracking-wider">Church Attendance</h4>
+                      <span className="text-[11px] font-black px-2 py-0.5 rounded-full bg-blue-100 text-blue-900 border border-blue-200">
+                        {attendanceList.length} {attendanceList.length === 1 ? 'Visit' : 'Visits'}
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-slate-500">Track services and meetings attended in church</p>
+                  </div>
+                </div>
+
+                {canModify && (
+                  <button
+                    type="button"
+                    onClick={() => setShowAddAttendance(!showAddAttendance)}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#0F2744] hover:bg-blue-900 text-white text-xs font-bold shadow-2xs transition-colors cursor-pointer min-h-[36px]"
+                  >
+                    <span>+ Mark Attended</span>
+                  </button>
+                )}
+              </div>
+
+              {/* Add Attendance Form */}
+              {showAddAttendance && (
+                <div className="p-3.5 bg-blue-50/70 border border-blue-200 rounded-xl space-y-3 animate-in fade-in">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                    <div>
+                      <label className="block text-[11px] font-bold text-slate-700 mb-1">Select Meeting</label>
+                      <select
+                        value={attendanceMeeting}
+                        onChange={(e) => setAttendanceMeeting(e.target.value)}
+                        className="w-full p-2 text-xs rounded-xl border border-blue-300 bg-white text-slate-900 outline-none focus:border-[#0F2744]"
+                      >
+                        {ATTENDANCE_MEETINGS.map((m) => (
+                          <option key={m} value={m}>
+                            {m}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-[11px] font-bold text-slate-700 mb-1">Date Attended</label>
+                      <input
+                        type="date"
+                        value={attendanceDate}
+                        onChange={(e) => setAttendanceDate(e.target.value)}
+                        className="w-full p-2 text-xs rounded-xl border border-blue-300 bg-white text-slate-900 outline-none focus:border-[#0F2744]"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-end gap-2 pt-1">
+                    <button
+                      type="button"
+                      onClick={() => setShowAddAttendance(false)}
+                      className="px-3 py-1.5 text-xs font-semibold text-slate-600 hover:bg-white rounded-lg transition-colors cursor-pointer min-h-[34px]"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleMarkAttended}
+                      disabled={isSaving}
+                      className="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-lg shadow-2xs transition-colors cursor-pointer min-h-[34px]"
+                    >
+                      {isSaving ? 'Saving...' : 'Save Attendance'}
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Attendance History List */}
+              {attendanceList.length === 0 ? (
+                <p className="text-xs text-slate-400 italic pt-1">
+                  No church visits recorded yet. Tap "+ Mark Attended" when {record.fullName.split(' ')[0] || 'this soul'} comes to church.
+                </p>
+              ) : (
+                <div className="space-y-1.5 pt-1">
+                  <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">Attendance History</span>
+                  <div className="divide-y divide-slate-100 border border-slate-100 rounded-xl overflow-hidden max-h-48 overflow-y-auto">
+                    {attendanceList.map((item, idx) => {
+                      const [datePart, ...meetingParts] = item.split('|');
+                      const meetingName = meetingParts.join('|') || 'Church Meeting';
+                      return (
+                        <div
+                          key={`${item}-${idx}`}
+                          className="flex items-center justify-between p-2.5 bg-slate-50 hover:bg-slate-100/80 transition-colors text-xs"
+                        >
+                          <div className="flex items-center gap-2">
+                            <span className="w-2 h-2 rounded-full bg-blue-600 flex-shrink-0" />
+                            <div>
+                              <span className="font-bold text-slate-800">{meetingName}</span>
+                              <span className="text-slate-400 mx-1.5">•</span>
+                              <span className="text-slate-500">{formatDateDisplay(datePart)}</span>
+                            </div>
+                          </div>
+                          {canModify && (
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveAttendance(idx)}
+                              disabled={isSaving}
+                              className="text-[11px] text-slate-400 hover:text-rose-600 transition-colors p-1 cursor-pointer"
+                              title="Delete entry"
+                            >
+                              <X className="w-3.5 h-3.5" />
+                            </button>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </div>
 
             {/* Coherent Timeline of Outreach & Follow-Up History */}
             <div className="space-y-3 pt-2 border-t border-slate-100">

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Lock, Unlock, Cloud, User as UserIcon } from 'lucide-react';
+import { Lock, Unlock, Cloud, User as UserIcon, LogOut } from 'lucide-react';
 import { User } from 'firebase/auth';
 
 interface HeaderProps {
@@ -62,32 +62,43 @@ export const Header: React.FC<HeaderProps> = ({
               </div>
             )}
 
-            {/* Worker Account / Sign In Button */}
-            <button
-              onClick={onOpenAuth}
-              className={`flex items-center gap-2 px-3 py-2 sm:px-3.5 sm:py-2 rounded-lg text-xs sm:text-sm font-semibold transition-all cursor-pointer min-h-[40px] ${
-                currentUser
-                  ? 'bg-amber-500 hover:bg-amber-400 text-slate-950 shadow-xs'
-                  : 'bg-white/10 hover:bg-white/15 text-white border border-white/20'
-              }`}
-              title={currentUser ? `Signed in as ${currentUser.email || currentUser.displayName}` : 'Sign in as evangelism worker'}
-            >
-              {currentUser ? (
-                <>
-                  <Unlock className="w-3.5 h-3.5 text-slate-950 flex-shrink-0" />
-                  <span className="hidden sm:inline font-bold truncate max-w-[130px]">
-                    {currentUser.displayName || currentUser.email?.split('@')[0] || 'Worker Active'}
-                  </span>
-                  <span className="sm:hidden font-bold">Account</span>
-                </>
-              ) : (
-                <>
-                  <Lock className="w-3.5 h-3.5 text-amber-300 flex-shrink-0" />
-                  <span className="hidden sm:inline">Worker Sign In</span>
-                  <span className="sm:hidden">Sign In</span>
-                </>
-              )}
-            </button>
+            {/* Controls: Exit Admin for admins, Worker Account for workers */}
+            {isAdminMode ? (
+              <button
+                onClick={onExitAdmin}
+                className="flex items-center gap-2 px-3 py-2 sm:px-3.5 sm:py-2 rounded-lg text-xs sm:text-sm font-bold transition-all cursor-pointer min-h-[40px] bg-rose-600 hover:bg-rose-500 text-white shadow-xs"
+                title="Exit Admin and Sign Out"
+              >
+                <LogOut className="w-3.5 h-3.5 flex-shrink-0" />
+                <span>Exit Admin</span>
+              </button>
+            ) : (
+              <button
+                onClick={onOpenAuth}
+                className={`flex items-center gap-2 px-3 py-2 sm:px-3.5 sm:py-2 rounded-lg text-xs sm:text-sm font-semibold transition-all cursor-pointer min-h-[40px] ${
+                  currentUser
+                    ? 'bg-amber-500 hover:bg-amber-400 text-slate-950 shadow-xs'
+                    : 'bg-white/10 hover:bg-white/15 text-white border border-white/20'
+                }`}
+                title={currentUser ? `Signed in as ${currentUser.email || currentUser.displayName}` : 'Sign in as evangelism worker'}
+              >
+                {currentUser ? (
+                  <>
+                    <Unlock className="w-3.5 h-3.5 text-slate-950 flex-shrink-0" />
+                    <span className="hidden sm:inline font-bold truncate max-w-[130px]">
+                      {currentUser.displayName || currentUser.email?.split('@')[0] || 'Worker Active'}
+                    </span>
+                    <span className="sm:hidden font-bold">Account</span>
+                  </>
+                ) : (
+                  <>
+                    <Lock className="w-3.5 h-3.5 text-amber-300 flex-shrink-0" />
+                    <span className="hidden sm:inline">Worker Sign In</span>
+                    <span className="sm:hidden">Sign In</span>
+                  </>
+                )}
+              </button>
+            )}
           </div>
         </div>
       </div>

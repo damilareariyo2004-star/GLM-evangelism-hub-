@@ -30,7 +30,8 @@ import {
   Download,
   Check,
   AlertTriangle,
-  X
+  X,
+  Bell
 } from 'lucide-react';
 import { User } from 'firebase/auth';
 import {
@@ -49,14 +50,15 @@ import {
   isDateInLastWeek,
   normalizeDateToYmd
 } from '../utils/dateUtils';
-import { downloadRecordsCsv } from '../utils/csvExport';
+import { downloadRecordsCsv, downloadAdminRecordsExcelCsv } from '../utils/csvExport';
 import { getProgramBadgeStyle } from '../utils/programUtils';
 import { WhatsAppIcon } from './BrandIcons';
 import { getWhatsAppLink, getTelLink } from '../utils/phoneUtils';
 import {
   subscribeToRemovedWorkers,
   removeWorkers,
-  restoreWorkerAccess
+  restoreWorkerAccess,
+  isNeedsFollowUp
 } from '../services/recordService';
 
 interface AdminPortalProps {
@@ -80,6 +82,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
   // All Records search & filters
   const [recordSearch, setRecordSearch] = useState('');
   const [filterWorker, setFilterWorker] = useState<string>('all');
+  const [filterEvangelist, setFilterEvangelist] = useState<string>('all');
   const [filterProgram, setFilterProgram] = useState<string>('all');
   const [filterStatus, setFilterStatus] = useState<'all' | 'pending' | 'followed_up' | 'established'>('all');
 
@@ -377,12 +380,34 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
     });
   }, [workers, workerStatusFilter, workerSearch]);
 
+  // Unique Evangelists across all records
+  const uniqueEvangelists = useMemo(() => {
+    const set = new Set<string>();
+    for (const rec of records) {
+      if (rec.evangelistName && rec.evangelistName.trim()) {
+        set.add(rec.evangelistName.trim());
+      }
+    }
+    return Array.from(set).sort((a, b) => a.localeCompare(b));
+  }, [records]);
+
+  // Needs follow-up across all workers (not contacted in >= 3 days or never)
+  const needsFollowUpAll = useMemo(() => {
+    return records
+      .filter((r) => isNeedsFollowUp(r))
+      .sort((a, b) => compareDatesDesc(a.date, b.date, a.createdAt, b.createdAt));
+  }, [records]);
+
   // Filtered All Records list
   const filteredAllRecords = useMemo(() => {
     let list = [...records];
 
     if (filterWorker !== 'all') {
       list = list.filter((r) => r.workerUid === filterWorker);
+    }
+
+    if (filterEvangelist !== 'all') {
+      list = list.filter((r) => (r.evangelistName || '').trim() === filterEvangelist);
     }
 
     if (filterProgram !== 'all') {
@@ -399,20 +424,21 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
 
     if (recordSearch.trim()) {
       const q = recordSearch.toLowerCase().trim();
-      list = list.filter(
-        (r) =>
-          r.fullName.toLowerCase().includes(q) ||
+      const cleanDigits = recordSearch.replace(/\D/g, '');
+      list = list.filter((r) => {
+        const nameMatch = r.fullName.toLowerCase().includes(q);
+        const phoneMatch =
           r.phone.toLowerCase().includes(q) ||
-          r.evangelistName.toLowerCase().includes(q) ||
-          (r.workerEmail && r.workerEmail.toLowerCase().includes(q))
-      );
+          (cleanDigits.length >= 3 && r.phone.replace(/\D/g, '').includes(cleanDigits));
+        return nameMatch || phoneMatch;
+      });
     }
 
     return list.sort((a, b) => compareDatesDesc(a.date, b.date, a.createdAt, b.createdAt));
-  }, [records, filterWorker, filterProgram, filterStatus, recordSearch]);
+  }, [records, filterWorker, filterEvangelist, filterProgram, filterStatus, recordSearch]);
 
   const handleExportAdminCsv = () => {
-    downloadRecordsCsv(filteredAllRecords, 'glm-admin-all-records.csv', { includeWorker: true });
+    downloadAdminRecordsExcelCsv(filteredAllRecords, 'glm-admin-all-records.csv');
   };
 
   return (
@@ -607,6 +633,88 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
                 </span>
               </div>
             </div>
+          </div>
+
+          {/* Needs Follow-Up Across All Workers (Not contacted in >= 3 days or never) */}
+          <div className="bg-white rounded-3xl p-5 border border-amber-200/90 shadow-2xs space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-amber-100 pb-3">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-xl bg-amber-50 text-amber-700 border border-amber-200 flex items-center justify-center">
+                  <Bell className="w-4 h-4 text-amber-600" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-base font-bold text-slate-900">Needs Follow-Up (Across All Workers)</h3>
+                    <span className="text-[11px] font-black px-2 py-0.5 rounded-full bg-amber-100 text-amber-900 border border-amber-200">
+                      {needsFollowUpAll.length}
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-500">
+                    Souls not contacted in 3 or more days (or never) across all church workers
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {needsFollowUpAll.length === 0 ? (
+              <div className="p-6 bg-slate-50 rounded-2xl border border-slate-200 text-center text-xs text-slate-500">
+                All souls have been contacted within the last 3 days! No pending follow-ups overdue.
+              </div>
+            ) : (
+              <div className="space-y-2.5 max-h-96 overflow-y-auto pr-1">
+                {needsFollowUpAll.map((rec) => {
+                  const waLink = getWhatsAppLink(
+                    rec.phone,
+                    rec.fullName,
+                    rec.evangelistName
+                  );
+                  return (
+                    <div
+                      key={rec.id}
+                      onClick={() => onSelectRecord(rec)}
+                      className="flex flex-col sm:flex-row sm:items-center justify-between p-3.5 bg-amber-50/30 hover:bg-amber-50/60 border border-amber-200/70 rounded-2xl transition-all cursor-pointer gap-3"
+                    >
+                      <div className="space-y-1 min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <h4 className="text-sm font-bold text-slate-900">{rec.fullName}</h4>
+                          <span className="text-xs font-mono text-slate-500">{rec.phone}</span>
+                          {rec.isNewConvert && (
+                            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-rose-100 text-rose-800 border border-rose-200">
+                              New Convert
+                            </span>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-2 text-xs text-slate-600 flex-wrap">
+                          <span>
+                            Worker: <strong className="text-slate-800">{rec.evangelistName}</strong>
+                          </span>
+                          <span>•</span>
+                          <span className="text-amber-800 font-medium">
+                            {rec.lastContactedAt
+                              ? `Last contacted: ${formatDateDisplay(rec.lastContactedAt)}`
+                              : `Outreach met on: ${formatDateDisplay(rec.date)} (Never contacted)`}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Admin sees this across all workers, with the WhatsApp button only */}
+                      <div className="flex items-center gap-2 flex-shrink-0" onClick={(e) => e.stopPropagation()}>
+                        <a
+                          href={waLink}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-2xs transition-colors cursor-pointer min-h-[38px]"
+                          title="Open WhatsApp chat"
+                        >
+                          <WhatsAppIcon className="w-3.5 h-3.5" />
+                          <span>WhatsApp</span>
+                        </a>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -1022,42 +1130,44 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
           {/* Search, Worker Filter, Program Filter, Status Filter & Export */}
           <div className="bg-white rounded-3xl p-4 sm:p-5 border border-slate-200/90 shadow-2xs space-y-3">
             <div className="flex flex-col sm:flex-row gap-2.5 items-center justify-between">
-              {/* Search input */}
+              {/* Search input for name or phone */}
               <div className="relative w-full sm:flex-1">
                 <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
                 <input
                   type="text"
                   value={recordSearch}
                   onChange={(e) => setRecordSearch(e.target.value)}
-                  placeholder="Search soul name, phone, or worker..."
+                  placeholder="Search by name or phone..."
                   className="w-full pl-9 pr-3 py-2 text-xs sm:text-sm rounded-xl border border-slate-200 outline-none focus:border-[#0F2744]"
                 />
               </div>
 
-              {/* CSV Export Button with Worker column */}
+              {/* Excel .csv Export Button */}
               <button
                 type="button"
                 onClick={handleExportAdminCsv}
                 className="w-full sm:w-auto flex items-center justify-center gap-1.5 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs sm:text-sm shadow-xs transition-colors cursor-pointer min-h-[40px]"
+                title="Download all filtered records as Excel CSV"
               >
                 <FileSpreadsheet className="w-4 h-4" />
-                <span>Export CSV (with Worker)</span>
+                <span>Export to Excel (.csv)</span>
               </button>
             </div>
 
             {/* Filter Dropdowns row */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 pt-1">
+              {/* Filter by Evangelist */}
               <div>
-                <label className="block text-[11px] font-bold text-slate-600 mb-1">Filter by Worker:</label>
+                <label className="block text-[11px] font-bold text-slate-600 mb-1">Filter by Evangelist:</label>
                 <select
-                  value={filterWorker}
-                  onChange={(e) => setFilterWorker(e.target.value)}
+                  value={filterEvangelist}
+                  onChange={(e) => setFilterEvangelist(e.target.value)}
                   className="w-full p-2 text-xs rounded-xl border border-slate-200 bg-slate-50 outline-none focus:border-[#0F2744]"
                 >
-                  <option value="all">All Workers ({workers.length})</option>
-                  {workers.map((w) => (
-                    <option key={w.workerUid} value={w.workerUid}>
-                      {w.workerName} ({w.totalRecorded})
+                  <option value="all">All Evangelists ({uniqueEvangelists.length})</option>
+                  {uniqueEvangelists.map((ev) => (
+                    <option key={ev} value={ev}>
+                      {ev}
                     </option>
                   ))}
                 </select>

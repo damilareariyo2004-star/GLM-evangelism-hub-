@@ -73,6 +73,14 @@
           "description": "Follow-up history, notes, or worker feedback",
           "maxLength": 3000
         },
+        "attendance": {
+          "type": "array",
+          "description": "Log of church services and meetings attended in 'YYYY-MM-DD|Meeting Name' format"
+        },
+        "lastContactedAt": {
+          "type": "string",
+          "description": "Date or ISO string when the contact was last contacted"
+        },
         "createdAt": {
           "type": "string",
           "format": "date-time",

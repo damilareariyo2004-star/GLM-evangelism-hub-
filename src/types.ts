@@ -27,6 +27,8 @@ export interface EvangelismRecord {
   isEstablished?: boolean;
   establishedAt?: string;
   followUpNotes?: string;
+  attendance?: string[]; // e.g. ['2026-11-03|Sunday Service']
+  lastContactedAt?: string; // e.g. '2026-11-03' or ISO timestamp
   createdAt?: string; // ISO string or timestamp
   updatedAt?: string;
 }
@@ -53,6 +55,8 @@ export interface DashboardStats {
   totalFollowedUp: number;
   totalEstablished: number;
   pendingFollowUp: number;
+  totalCameToChurch: number;
+  needsFollowUpCount: number;
   programCounts: Record<ChurchProgram, number>;
 }
 

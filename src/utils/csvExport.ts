@@ -171,3 +171,67 @@ export function downloadRecordsCsv(
   URL.revokeObjectURL(url);
 }
 
+/**
+ * Generates CSV content formatted for Admin Excel Export with exact requested columns:
+ * name, phone, evangelist, date, programs invited, new convert, responded well, followed up, established, attendance count, notes.
+ */
+export function generateAdminRecordsCsv(records: EvangelismRecord[]): string {
+  const headers = [
+    'Name',
+    'Phone',
+    'Evangelist',
+    'Date',
+    'Programs Invited',
+    'New Convert',
+    'Responded Well',
+    'Followed Up',
+    'Established',
+    'Attendance Count',
+    'Notes'
+  ];
+
+  const headerRow = headers.map(escapeCsvField).join(',');
+
+  const dataRows = records.map((rec) => {
+    const attendanceCount = Array.isArray(rec.attendance) ? rec.attendance.length : 0;
+    const combinedNotes = [rec.notes, rec.followUpNotes].filter(Boolean).join(' | ');
+    const row = [
+      rec.fullName,
+      rec.phone,
+      rec.evangelistName,
+      formatDateDisplay(rec.date),
+      Array.isArray(rec.programs) ? rec.programs.join('; ') : '',
+      rec.isNewConvert ? 'Yes' : 'No',
+      rec.respondedWell ? 'Yes' : 'No',
+      rec.followedUp ? 'Yes' : 'No',
+      rec.isEstablished ? 'Yes' : 'No',
+      attendanceCount,
+      combinedNotes
+    ];
+    return row.map(escapeCsvField).join(',');
+  });
+
+  return [headerRow, ...dataRows].join('\r\n');
+}
+
+/**
+ * Initiates browser download of Admin CSV file compatible with Microsoft Excel
+ */
+export function downloadAdminRecordsExcelCsv(
+  records: EvangelismRecord[],
+  filename = 'glm-admin-all-records.csv'
+): void {
+  const csvContent = generateAdminRecordsCsv(records);
+  const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.setAttribute('href', url);
+  link.setAttribute('download', filename);
+  link.style.visibility = 'hidden';
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+}
+
+

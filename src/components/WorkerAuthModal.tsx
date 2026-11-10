@@ -3,8 +3,6 @@ import {
   signInWithPopup,
   GoogleAuthProvider,
   signInWithEmailAndPassword,
-  createUserWithEmailAndPassword,
-  updateProfile,
   signOut,
   User
 } from 'firebase/auth';
@@ -48,11 +46,6 @@ export const WorkerAuthModal: React.FC<WorkerAuthModalProps> = ({
   onAdminSuccess
 }) => {
   const [isAdminView, setIsAdminView] = useState(false);
-  const [authMode, setAuthMode] = useState<'signin' | 'register'>('signin');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [displayName, setDisplayName] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
   const [adminEmail, setAdminEmail] = useState('');
   const [adminPassword, setAdminPassword] = useState('');
   const [showAdminPassword, setShowAdminPassword] = useState(false);
@@ -78,6 +71,14 @@ export const WorkerAuthModal: React.FC<WorkerAuthModalProps> = ({
       });
 
       const result = await signInWithPopup(auth, provider);
+
+      // If a Google sign-in uses an email that is in the admin list, sign out and show 'Admin accounts cannot be used as worker accounts'.
+      const userEmail = (result.user.email || '').trim().toLowerCase();
+      if (isApprovedAdminEmail(userEmail)) {
+        await signOut(auth);
+        setError('Admin accounts cannot be used as worker accounts.');
+        return;
+      }
 
       // Verify if worker access has been revoked by admin
       const isRemoved = await checkIfWorkerRemoved(result.user.uid);
@@ -178,77 +179,7 @@ export const WorkerAuthModal: React.FC<WorkerAuthModalProps> = ({
     }
   };
 
-  const handleEmailAuth = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsLoading(true);
-    setError(null);
-    setErrorType(null);
 
-    if (!email.trim() || !password.trim()) {
-      setError('Please provide your email and password.');
-      setIsLoading(false);
-      return;
-    }
-
-    try {
-      if (authMode === 'signin') {
-        const result = await signInWithEmailAndPassword(auth, email.trim(), password);
-        const isRemoved = await checkIfWorkerRemoved(result.user.uid);
-        if (isRemoved) {
-          await signOut(auth);
-          setError('Your access has been removed. Please contact your admin.');
-          return;
-        }
-        onSuccess(result.user);
-        onClose();
-      } else {
-        if (password.length < 6) {
-          setError('Password must be at least 6 characters.');
-          setIsLoading(false);
-          return;
-        }
-        const result = await createUserWithEmailAndPassword(auth, email.trim(), password);
-        if (displayName.trim()) {
-          await updateProfile(result.user, { displayName: displayName.trim() });
-        }
-        const isRemoved = await checkIfWorkerRemoved(result.user.uid);
-        if (isRemoved) {
-          await signOut(auth);
-          setError('Your access has been removed. Please contact your admin.');
-          return;
-        }
-        onSuccess(result.user);
-        onClose();
-      }
-    } catch (err: unknown) {
-      console.error('Email Auth error:', err);
-      const msg = err instanceof Error ? err.message : String(err);
-
-      if (msg.includes('operation-not-allowed')) {
-        setErrorType('operation_not_allowed');
-        setError(
-          'Email/Password sign-in is not yet enabled in this Firebase project. You can enable it in Firebase Console under Authentication > Sign-in method > Email/Password, or use Google Sign-In above.'
-        );
-      } else if (
-        msg.includes('user-not-found') ||
-        msg.includes('wrong-password') ||
-        msg.includes('invalid-credential')
-      ) {
-        setError('Invalid email or password. Please verify your credentials or create a new worker account.');
-      } else if (msg.includes('email-already-in-use')) {
-        setError('This email is already registered. Please switch to Sign In.');
-      } else if (msg.includes('weak-password')) {
-        setError('Password should be at least 6 characters.');
-      } else if (msg.includes('network-request-failed')) {
-        setErrorType('network');
-        setError('Network request failed. Please check your internet connection.');
-      } else {
-        setError(msg);
-      }
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
   const handleSignOut = async () => {
     setIsLoading(true);
@@ -563,136 +494,10 @@ export const WorkerAuthModal: React.FC<WorkerAuthModalProps> = ({
               <span>{isLoading ? 'Connecting to Google...' : 'Continue with Google'}</span>
             </button>
 
-            <div className="relative flex items-center justify-center">
-              <div className="border-t border-slate-200 w-full"></div>
-              <span className="bg-white px-3 text-xs text-slate-400 font-semibold uppercase whitespace-nowrap">
-                or with email
-              </span>
-              <div className="border-t border-slate-200 w-full"></div>
-            </div>
-
-            {/* Tab switch between Sign In and Register */}
-            <div className="flex bg-slate-100 p-1 rounded-xl">
-              <button
-                type="button"
-                onClick={() => {
-                  setAuthMode('signin');
-                  setError(null);
-                  setErrorType(null);
-                }}
-                className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition-all cursor-pointer ${
-                  authMode === 'signin'
-                    ? 'bg-white text-[#1E5AA8] shadow-xs'
-                    : 'text-slate-500 hover:text-slate-800'
-                }`}
-              >
-                Sign In
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setAuthMode('register');
-                  setError(null);
-                  setErrorType(null);
-                }}
-                className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition-all cursor-pointer ${
-                  authMode === 'register'
-                    ? 'bg-white text-[#E02020] shadow-xs'
-                    : 'text-slate-500 hover:text-slate-800'
-                }`}
-              >
-                New Account
-              </button>
-            </div>
-
-            <form onSubmit={handleEmailAuth} className="space-y-3.5">
-              {authMode === 'register' && (
-                <div>
-                  <label className="block text-xs font-bold text-slate-800 mb-1">
-                    Worker's Full Name:
-                  </label>
-                  <div className="relative">
-                    <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
-                      <UserIcon className="w-4 h-4" />
-                    </div>
-                    <input
-                      type="text"
-                      value={displayName}
-                      onChange={(e) => setDisplayName(e.target.value)}
-                      placeholder="e.g. Brother Emmanuel"
-                      className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-300 focus:border-[#1E5AA8] focus:ring-2 focus:ring-blue-500/20 text-xs sm:text-sm outline-none"
-                    />
-                  </div>
-                </div>
-              )}
-
-              <div>
-                <label className="block text-xs font-bold text-slate-800 mb-1">
-                  Worker Email:
-                </label>
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
-                    <Mail className="w-4 h-4" />
-                  </div>
-                  <input
-                    type="email"
-                    required
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder="worker@gospellabour.org"
-                    className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-300 focus:border-[#1E5AA8] focus:ring-2 focus:ring-blue-500/20 text-xs sm:text-sm outline-none"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-slate-800 mb-1">
-                  Password:
-                </label>
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
-                    <KeyRound className="w-4 h-4" />
-                  </div>
-                  <input
-                    type={showPassword ? 'text' : 'password'}
-                    required
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    placeholder="••••••••"
-                    className="w-full pl-10 pr-10 py-2.5 rounded-xl border border-slate-300 focus:border-[#1E5AA8] focus:ring-2 focus:ring-blue-500/20 text-xs sm:text-sm outline-none"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-slate-400 hover:text-slate-600 cursor-pointer"
-                  >
-                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                  </button>
-                </div>
-              </div>
-
-              <div className="pt-1">
-                <button
-                  type="submit"
-                  disabled={isLoading}
-                  className="w-full py-3 px-4 rounded-xl bg-[#F7931E] hover:bg-[#E07F0E] text-slate-950 font-black text-sm shadow-md transition-all active:scale-98 cursor-pointer border border-orange-300 flex items-center justify-center gap-2 disabled:opacity-50"
-                >
-                  {isLoading ? (
-                    <span>Authenticating...</span>
-                  ) : authMode === 'signin' ? (
-                    <>
-                      <ShieldCheck className="w-4 h-4 text-slate-950" />
-                      <span>Sign In to Evangelism Hub</span>
-                    </>
-                  ) : (
-                    <>
-                      <UserPlus className="w-4 h-4 text-slate-950" />
-                      <span>Create Worker Account</span>
-                    </>
-                  )}
-                </button>
-              </div>
-            </form>
+            {/* Workers sign in with Google only */}
+            <p className="text-center text-xs text-slate-500 font-medium">
+              Sign in with your Google account to access your outreach records.
+            </p>
 
             {/* Subtle help toggle */}
             <div className="pt-2 text-center">

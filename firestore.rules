@@ -55,7 +55,7 @@ service cloud.firestore {
 
     function isValidRecord(data) {
       return data.workerUid is string && data.workerUid.size() >= 1 && data.workerUid.size() <= 128
-        && (!('workerEmail' in data) || (data.workerEmail is string && data.workerEmail.size() <= 150))
+        && (!('workerEmail' in data) || data.workerEmail == null || (data.workerEmail is string && data.workerEmail.size() <= 150))
         && data.fullName is string && data.fullName.size() >= 1 && data.fullName.size() <= 150
         && data.phone is string && data.phone.size() >= 3 && data.phone.size() <= 50
         && data.programs is list && data.programs.size() <= 10
@@ -64,10 +64,14 @@ service cloud.firestore {
         && data.evangelistName is string && data.evangelistName.size() >= 1 && data.evangelistName.size() <= 150
         && data.date is string && data.date.size() <= 25
         && data.followedUp is bool
-        && (!('isEstablished' in data) || data.isEstablished is bool)
-        && (!('establishedAt' in data) || (data.establishedAt is string && data.establishedAt.size() <= 50))
-        && (!('notes' in data) || (data.notes is string && data.notes.size() <= 2500))
-        && (!('followUpNotes' in data) || (data.followUpNotes is string && data.followUpNotes.size() <= 3000));
+        && (!('isEstablished' in data) || data.isEstablished == null || data.isEstablished is bool)
+        && (!('establishedAt' in data) || data.establishedAt == null || data.establishedAt is timestamp || (data.establishedAt is string && data.establishedAt.size() <= 50))
+        && (!('notes' in data) || data.notes == null || (data.notes is string && data.notes.size() <= 2500))
+        && (!('followUpNotes' in data) || data.followUpNotes == null || (data.followUpNotes is string && data.followUpNotes.size() <= 3000))
+        && (!('attendance' in data) || data.attendance == null || (data.attendance is list && data.attendance.size() <= 250))
+        && (!('lastContactedAt' in data) || data.lastContactedAt == null || data.lastContactedAt is timestamp || (data.lastContactedAt is string && data.lastContactedAt.size() <= 60))
+        && (!('createdAt' in data) || data.createdAt == null || data.createdAt is timestamp || (data.createdAt is string && data.createdAt.size() <= 60))
+        && (!('updatedAt' in data) || data.updatedAt == null || data.updatedAt is timestamp || (data.updatedAt is string && data.updatedAt.size() <= 60));
     }
 
     match /records/{recordId} {

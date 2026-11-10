@@ -30,7 +30,7 @@ import {
 } from './services/recordService';
 import { auth, testConnection } from './firebase';
 import { EvangelismRecord, DashboardStats } from './types';
-import { getPendingAdminSignIn } from './config/adminConfig';
+import { getPendingAdminSignIn, isApprovedAdminEmail } from './config/adminConfig';
 
 /**
  * Idle limit in milliseconds before automatic sign-out when the app stays in the background.
@@ -107,12 +107,20 @@ export default function App() {
   // Listen to Firebase Authentication state changes
   useEffect(() => {
     const unsubscribeAuth = onAuthStateChanged(auth, async (user) => {
-      // If admin sign-in is actively being verified in the modal, let handleAdminGoogleSignIn handle role transition
+      // If admin sign-in is actively being verified in the modal, let handleAdminEmailSignIn handle role transition
       if (getPendingAdminSignIn()) {
         return;
       }
 
       if (user) {
+        const userEmail = (user.email || '').trim().toLowerCase();
+        // If the user's email is an admin email, strictly ensure isAdminMode is true
+        if (isApprovedAdminEmail(userEmail)) {
+          setCurrentUser(user);
+          setIsAdminMode(true);
+          return;
+        }
+
         // Enforce removed worker restriction
         const isRemoved = await checkIfWorkerRemoved(user.uid);
         if (isRemoved) {
@@ -219,6 +227,22 @@ export default function App() {
     setSelectedRecord(null);
   };
 
+  /**
+   * Signs out an administrator completely from the application, returning them
+   * directly to the sign-in gate. Administrators never have worker pages or worker records.
+   */
+  const handleExitAdmin = async () => {
+    setCurrentUser(null);
+    setIsAdminMode(false);
+    setRecords([]);
+    setSelectedRecord(null);
+    try {
+      await signOut(auth);
+    } catch (err) {
+      console.warn('Sign-out on exit admin error:', err);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col selection:bg-orange-100 selection:text-orange-900">
       {/* Animated Welcome Splash Screen (Plays on every page load / refresh) */}
@@ -250,7 +274,7 @@ export default function App() {
             onOpenAuth={() => setIsAuthModalOpen(true)}
             recordsCount={records.length}
             isAdminMode={isAdminMode}
-            onExitAdmin={() => setIsAdminMode(false)}
+            onExitAdmin={handleExitAdmin}
           />
 
           {/* Navigation (Tabs for workers; hidden in Admin mode) */}
@@ -269,7 +293,7 @@ export default function App() {
                 currentUser={currentUser}
                 records={records}
                 onSelectRecord={(rec) => setSelectedRecord(rec)}
-                onExitAdmin={() => setIsAdminMode(false)}
+                onExitAdmin={handleExitAdmin}
                 onUpdateRecord={handleUpdateRecord}
                 onDeleteRecord={handleDeleteRecord}
               />
@@ -279,6 +303,7 @@ export default function App() {
                   <Dashboard
                     stats={stats}
                     recentRecords={records}
+                    allRecords={records}
                     currentUser={currentUser}
                     onOpenAuth={() => setIsAuthModalOpen(true)}
                     onNavigateToAdd={() => setCurrentTab('add')}
@@ -287,6 +312,13 @@ export default function App() {
                     onOpenExportModal={() => setIsExportModalOpen(true)}
                     onSelectRecord={(rec) => {
                       setSelectedRecord(rec);
+                    }}
+                    onMarkContactedToday={async (rec) => {
+                      const todayYmd = new Date().toISOString().slice(0, 10);
+                      await handleUpdateRecord(rec.id!, {
+                        lastContactedAt: todayYmd,
+                        followedUp: true
+                      });
                     }}
                   />
                 )}
